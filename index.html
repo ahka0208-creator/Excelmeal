@@ -3,163 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>營地分枱紙自動生成器 (Excel 膳食表直出 PDF 版)</title>
-  <!-- Tailwind CSS CDN -->
+  <title>營地分枱紙自動生成器（Excel 膳食表直出 PDF 版）</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* 標楷體字型 Stack */
+    /* 標楷體 / DFKai-SB Kai font stack */
     .font-kai {
-      font-family: 'DFKai-SB', 'BiauKai', 'Kaiti TC', 'STKaiti', 'KaiTi', '標楷體', serif;
+      font-family: 'DFKai-SB', '標楷體', 'BiauKai', 'Kaiti TC', 'STKaiti', 'KaiTi', serif;
     }
     
-    /* Live Preview Screen Styles */
-    :root {
-      --card-scale: 1;
-    }
-
-    /* Print Paper Outer Wrapper */
-    .a4-page {
-      width: 210mm;
-      min-height: 297mm;
-      padding: 8.5mm 7mm;
-      margin: 0 auto 20px auto;
-      background: white;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-      box-sizing: border-box;
-      page-break-after: always;
-      break-after: page;
-      display: grid;
-    }
-
-    /* Grid layout variations */
-    .grid-4 {
-      grid-template-columns: repeat(2, 98mm);
-      grid-template-rows: repeat(2, 140mm);
-      gap: 0mm;
-      justify-content: center;
-      align-content: center;
-    }
-    .grid-6 {
-      grid-template-columns: repeat(2, 98mm);
-      grid-template-rows: repeat(3, 93mm);
-      gap: 0mm;
-      justify-content: center;
-      align-content: center;
-    }
-    .grid-8 {
-      grid-template-columns: repeat(2, 98mm);
-      grid-template-rows: repeat(4, 70mm);
-      gap: 0mm;
-      justify-content: center;
-      align-content: center;
-    }
-
-    /* Individual Card Container */
-    .table-card {
-      width: 100%;
-      height: 100%;
-      box-sizing: border-box;
-      padding: 0.6em 0.8em;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      text-align: center;
-      background: #ffffff;
-      color: #000000;
-      line-height: 1.25;
-      position: relative;
-      overflow: hidden;
-      /* Base font scale applied dynamically */
-      font-size: calc(17pt * var(--card-scale));
-    }
-
-    /* Border Options */
-    .border-solid-card {
-      border: 0.5pt solid #222222;
-    }
-    .border-dashed-card {
-      border: 0.5pt dashed #555555;
-    }
-    .border-none-card {
-      border: 0.5pt solid transparent;
-    }
-
-    /* Card Typography Elements with strict relative em sizes */
-    .card-header-box {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    .card-title {
-      font-size: 1.28em;
-      font-weight: 700;
-      color: #000;
-      letter-spacing: 0.02em;
-      word-break: break-all;
-      line-height: 1.15;
-    }
-    .card-title-long {
-      font-size: 1.05em;
-    }
-    .card-tag {
-      font-size: 0.9em;
-      font-weight: 400;
-      color: #333;
-      margin-top: 0.1em;
-    }
-    .card-half-badge {
-      font-size: 1.55em;
-      font-weight: 400;
-      color: #000;
-      margin-top: 0.05em;
-      margin-bottom: 0.05em;
-      letter-spacing: 0.05em;
-    }
-
-    .card-body-dates {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.45em;
-      margin: auto 0;
-    }
-
-    .card-date-block {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .card-date-title {
-      font-size: 1.38em;
-      font-weight: 700;
-      color: #000;
-      line-height: 1.15;
-    }
-    .card-meal-line {
-      font-size: 1.08em;
-      font-weight: 400;
-      color: #000;
-      line-height: 1.2;
-      margin-top: 0.05em;
-    }
-
-    .card-footer {
-      font-size: 1.08em;
-      font-weight: 400;
-      color: #000;
-      width: 100%;
-      margin-top: 0.2em;
-    }
-
-    /* Custom Scrollbar */
+    /* Custom Scrollbar for App UI */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -175,1362 +27,1418 @@
       background: #94a3b8;
     }
 
-    /* High DPI Printing Rules */
+    /* Print Specific CSS */
     @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printContainer, #printContainer * {
+        visibility: visible !important;
+      }
+      #printContainer {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .a4-page {
+        page-break-after: always !important;
+        break-after: page !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
       @page {
         size: A4 portrait;
         margin: 0;
       }
-      body {
-        background: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      .no-print {
-        display: none !important;
-      }
-      .a4-page {
-        margin: 0 !important;
-        box-shadow: none !important;
-        border: none !important;
-        page-break-after: always !important;
-        break-after: page !important;
-      }
-      .preview-container {
-        padding: 0 !important;
-        background: none !important;
-        overflow: visible !important;
-      }
+    }
+
+    /* Border style classes for cards */
+    .card-border-solid {
+      border: 1px solid #000000;
+    }
+    .card-border-dashed {
+      border: 1px dashed #000000;
+    }
+    .card-border-none {
+      border: 1px solid transparent;
+    }
+
+    /* Collapsed border layout for 2x2 grid */
+    .grid-collapsed {
+      display: grid;
+      border-collapse: collapse;
+    }
+
+    /* Card styling */
+    .table-card {
+      color: #000000;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      align-items: center;
+      text-align: center;
+      background: #ffffff;
+      overflow: hidden;
+      word-break: break-word;
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+<body class="bg-slate-100 text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
 
-  <!-- Header Navbar (No Print) -->
-  <header class="no-print bg-slate-900 text-white shadow-md border-b border-slate-800 sticky top-0 z-30">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center space-x-3">
-        <div class="bg-indigo-600 text-white p-2 rounded-lg shadow">
-          <i class="fa-solid fa-utensils text-xl"></i>
-        </div>
-        <div>
-          <h1 class="text-lg font-bold tracking-wide flex items-center gap-2">
-            營地分枱紙自動生成器 
-            <span class="text-xs font-normal bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 px-2 py-0.5 rounded-full">原生 100% 零依賴 .xlsx 版</span>
-          </h1>
-          <p class="text-xs text-slate-400">Excel 膳食表直出 PDF / 支援多週合併與半圍自動拆分</p>
-        </div>
+  <!-- Header Navigation -->
+  <header class="bg-slate-900 text-white px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md shrink-0 z-20">
+    <div class="flex items-center space-x-3">
+      <span class="text-2xl">📋</span>
+      <div>
+        <h1 class="text-lg font-bold leading-tight">營地分枱紙自動生成器</h1>
+        <p class="text-xs text-slate-400">Excel 膳食表直出 PDF / Word 專用工具 (香港傳統營地版)</p>
       </div>
-      <div class="flex items-center gap-2">
-        <button onclick="loadSampleData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1.5 shadow-sm">
-          <i class="fa-solid fa-rotate-left text-indigo-400"></i> 載入示範數據
-        </button>
-        <button onclick="window.print()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-md transition flex items-center gap-1.5">
-          <i class="fa-solid fa-print"></i> 列印 / 另存 PDF
-        </button>
-      </div>
+    </div>
+    
+    <!-- Action Controls -->
+    <div class="flex items-center flex-wrap gap-2">
+      <button onclick="loadDemoData()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 text-xs font-medium rounded transition flex items-center gap-1">
+        <span>🔄</span> 載入示範數據
+      </button>
+      <button onclick="exportWordDoc()" class="px-3 py-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-medium rounded transition flex items-center gap-1 shadow-sm">
+        <span>📄</span> 匯出 Word (.doc)
+      </button>
+      <button onclick="downloadHtmlFile()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium rounded transition flex items-center gap-1 shadow-sm">
+        <span>⬇️</span> 下載列印檔 (.html)
+      </button>
+      <button onclick="triggerPrint()" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded transition flex items-center gap-1 shadow-md">
+        <span>🖨️</span> 列印 / 儲存 PDF
+      </button>
     </div>
   </header>
 
-  <!-- Main Container -->
-  <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 flex flex-col lg:flex-row gap-5">
-    
-    <!-- Left Workspace Controls (No Print) -->
-    <aside class="no-print lg:w-[480px] xl:w-[520px] flex flex-col gap-4 shrink-0">
+  <!-- Main Body Layout -->
+  <div class="flex flex-1 overflow-hidden relative">
 
-      <!-- Upload Section -->
-      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 transition hover:shadow-md">
-        <h2 class="text-sm font-bold text-slate-800 mb-2 flex items-center justify-between">
-          <span><i class="fa-solid fa-file-excel text-emerald-600 mr-2"></i>上傳 Excel 膳食表 (.xlsx)</span>
-          <span id="parsingStatus" class="text-xs font-normal text-slate-400">離線純 JS 解析</span>
+    <!-- Left Sidebar: Excel Upload & Sheet Selector & Group Controls -->
+    <aside id="sidebar" class="w-full md:w-[320px] lg:w-[360px] bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-y-auto z-10 transition-all duration-300">
+      
+      <!-- Upload Drop Zone Panel -->
+      <div class="p-4 border-b border-slate-200 bg-slate-50">
+        <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+          <span>1. 上傳膳食表 Excel</span>
         </h2>
-
-        <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-lg p-5 text-center hover:border-indigo-500 hover:bg-indigo-50/50 transition cursor-pointer relative bg-slate-50/50">
-          <input type="file" id="excelFileInput" accept=".xlsx,.xlsm,.xls" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onchange="handleFileUpload(event)">
-          <div class="space-y-2 pointer-events-none">
-            <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-1"></i>
-            <p class="text-xs font-semibold text-slate-700">點擊選擇檔案 或 將 Excel 拖曳至此</p>
-            <p class="text-[11px] text-slate-400">支援 `.xlsx` / `.xlsm`（包含 100+ 工作表之大型檔案）</p>
-          </div>
-        </div>
-
-        <div id="errorAlert" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-start gap-2">
-          <i class="fa-solid fa-triangle-exclamation text-red-500 mt-0.5 shrink-0"></i>
-          <span id="errorMessage"></span>
-        </div>
-      </section>
-
-      <!-- Sheet Selector Section -->
-      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-3">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-            <i class="fa-solid fa-table-cells text-indigo-600"></i> 選擇工作表 
-            <span id="sheetCountBadge" class="text-xs font-normal bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">未選取</span>
-          </h2>
-          <label class="inline-flex items-center cursor-pointer text-xs text-slate-500">
-            <input type="checkbox" id="toggleAllSheets" class="sr-only peer" onchange="renderSheetList()">
-            <div class="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600 relative"></div>
-            <span class="ml-1.5">顯示非週表</span>
+        
+        <div id="dropZone" class="border-2 border-dashed border-slate-300 hover:border-amber-500 bg-white rounded-lg p-4 text-center cursor-pointer transition-colors duration-150">
+          <input type="file" id="excelFileInput" accept=".xlsx" class="hidden" onchange="handleFileUpload(event)">
+          <label for="excelFileInput" class="cursor-pointer flex flex-col items-center">
+            <svg class="w-8 h-8 text-amber-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            <span class="text-sm font-semibold text-slate-700">點擊上傳或拖放 .xlsx 檔案</span>
+            <span class="text-xs text-slate-400 mt-1">支援大檔案 (如 膳食表 - 電子版.xlsx)</span>
           </label>
         </div>
 
-        <!-- Search and Pills -->
-        <div class="space-y-2">
-          <div class="relative">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-            <input type="text" id="sheetSearchInput" placeholder="搜尋工作表 (例: 11W4, 2026)..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition" oninput="filterSheets()">
-          </div>
+        <!-- Live Status Box -->
+        <div id="excelStatusBox" class="mt-3 p-2.5 rounded-md text-xs bg-slate-100 text-slate-600 border border-slate-200 font-mono leading-relaxed">
+          💡 請上傳 .xlsx 膳食表開始產生分枱紙。
+        </div>
+      </div>
 
-          <div class="flex items-center justify-between text-xs gap-1">
-            <div class="flex items-center gap-1 overflow-x-auto pb-1" id="sheetFilterPills">
-              <button onclick="setSheetPill('ALL')" class="pill-btn px-2.5 py-1 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">全部</button>
-              <button onclick="setSheetPill('2026')" class="pill-btn px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">2026</button>
-              <button onclick="setSheetPill('2027')" class="pill-btn px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">2027</button>
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-              <button onclick="selectAllVisibleSheets(true)" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] rounded border border-slate-300">全選</button>
-              <button onclick="selectAllVisibleSheets(false)" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] rounded border border-slate-300">取消全選</button>
-            </div>
+      <!-- Sheet Selector Section (Hidden by default, shown after file upload) -->
+      <div id="sheetSection" class="p-4 border-b border-slate-200 bg-slate-50/50 hidden">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+            <span>2. 選擇工作表 (週表)</span>
+          </h2>
+          <label class="text-[11px] text-slate-500 flex items-center gap-1 cursor-pointer">
+            <input type="checkbox" id="showAllSheetsToggle" onchange="filterSheetsList()" class="rounded text-amber-600"> 顯示全部
+          </label>
+        </div>
+
+        <!-- Filter Pills & Search -->
+        <div class="space-y-2 mb-3">
+          <div id="yearPills" class="flex flex-wrap gap-1"></div>
+          <input type="text" id="sheetSearchInput" oninput="filterSheetsList()" placeholder="搜尋工作表 (例: 11W4)..." class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500">
+        </div>
+
+        <!-- Action buttons for sheets -->
+        <div class="flex items-center justify-between text-xs mb-2">
+          <span id="sheetCountBadge" class="text-slate-400 font-mono">0 個工作表</span>
+          <div class="space-x-2">
+            <button onclick="selectAllSheets(true)" class="text-amber-600 hover:underline">全選</button>
+            <button onclick="selectAllSheets(false)" class="text-slate-500 hover:underline">取消全選</button>
           </div>
         </div>
 
-        <!-- Sheet List Scrollable Box -->
-        <div id="sheetListContainer" class="max-h-44 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50/50 space-y-1">
-          <p class="text-xs text-slate-400 text-center py-4">請先上傳 Excel 檔案</p>
-        </div>
-      </section>
+        <!-- Sheet List Container -->
+        <div id="sheetListContainer" class="max-h-40 overflow-y-auto border border-slate-200 rounded bg-white p-2 space-y-1 text-xs"></div>
+      </div>
 
       <!-- Group Selection & Management -->
-      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-3 flex-1 min-h-[300px]">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-            <i class="fa-solid fa-users text-indigo-600"></i> 團體資料列表
-            <span id="groupCountBadge" class="text-xs font-normal bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">0 個團體</span>
-          </h2>
-          <div class="flex items-center gap-1.5">
-            <button onclick="selectAllGroups(true)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded border border-slate-300 transition">全選</button>
-            <button onclick="selectAllGroups(false)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded border border-slate-300 transition">取消全選</button>
-            <button onclick="openAddGroupModal()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded shadow-sm transition flex items-center gap-1">
-              <i class="fa-solid fa-plus"></i> 新增
-            </button>
+      <div id="groupSection" class="p-4 flex-1 overflow-y-auto">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider">3. 團體名單與膳食</h2>
+          <div class="space-x-2 text-xs">
+            <button onclick="selectAllGroups(true)" class="text-amber-600 hover:underline">全選</button>
+            <button onclick="selectAllGroups(false)" class="text-slate-500 hover:underline">取消全選</button>
           </div>
         </div>
 
-        <!-- Group List Container -->
-        <div id="groupListContainer" class="flex-1 overflow-y-auto max-h-[340px] border border-slate-200 rounded-lg p-2 bg-slate-50/50 space-y-2">
-          <!-- Groups will be injected here -->
-        </div>
-      </section>
-
-      <!-- Layout & Formatting Controls -->
-      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
-        <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
-          <i class="fa-solid fa-sliders text-indigo-600"></i> 排版與列印設定
-        </h2>
-
-        <div class="grid grid-cols-2 gap-3 text-xs">
-          <!-- Cards per page -->
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">每頁卡片數量</label>
-            <select id="gridSelect" onchange="updatePrintConfig()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none">
-              <option value="4" selected>一頁 4 格 (2×2 Standard)</option>
-              <option value="6">一頁 6 格 (2×3 Dense)</option>
-              <option value="8">一頁 8 格 (2×4 Small)</option>
-            </select>
-          </div>
-
-          <!-- Border Style -->
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">卡片邊框樣式</label>
-            <select id="borderSelect" onchange="updatePrintConfig()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none">
-              <option value="border-solid-card" selected>實線 (0.5pt Solid)</option>
-              <option value="border-dashed-card">虛線 (0.5pt Dashed)</option>
-              <option value="border-none-card">無邊框 (No Border)</option>
-            </select>
-          </div>
+        <!-- Toggles & Search -->
+        <div class="space-y-2 mb-3">
+          <label class="text-xs text-slate-600 flex items-center gap-1.5 cursor-pointer bg-slate-100 p-2 rounded">
+            <input type="checkbox" id="cleanTagsToggle" checked onchange="reprocessParsedData()" class="rounded text-amber-600">
+            <span>自動清除 (pencil)/(pan) 標記</span>
+          </label>
+          <input type="text" id="groupSearchInput" oninput="renderGroupList()" placeholder="搜尋團體名稱..." class="w-full px-2.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-amber-500">
         </div>
 
-        <!-- Proportional Font Scale Slider -->
-        <div class="pt-1">
-          <div class="flex items-center justify-between text-xs mb-1">
-            <span class="font-semibold text-slate-700">文字比例縮放 (--card-scale)</span>
-            <span id="fontScaleLabel" class="font-mono text-indigo-600 font-bold">100%</span>
-          </div>
-          <input type="range" id="fontScaleSlider" min="50" max="150" value="100" step="5" oninput="updateFontScale(this.value)" class="w-full accent-indigo-600 cursor-pointer">
-          <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
-            <span>50% (極小)</span>
-            <span>100% (預設標楷體)</span>
-            <span>150% (極大)</span>
-          </div>
-        </div>
-      </section>
-
+        <!-- Group List Checklist -->
+        <div id="groupListContainer" class="space-y-1.5 text-xs"></div>
+      </div>
     </aside>
 
-    <!-- Right Live Preview Section -->
-    <section class="flex-1 flex flex-col items-center overflow-x-auto preview-container bg-slate-200/70 p-4 rounded-xl border border-slate-300/60 min-h-[800px]">
-      
-      <!-- Preview Header Toolbar (No Print) -->
-      <div class="no-print w-full max-w-[210mm] flex items-center justify-between bg-slate-900 text-white px-4 py-2 rounded-t-lg shadow-sm mb-3">
-        <span class="text-xs font-semibold flex items-center gap-2">
-          <i class="fa-solid fa-eye text-emerald-400"></i> A4 紙張即時預覽 (100% 標楷體)
-        </span>
-        <span id="previewPageInfo" class="text-xs text-slate-300 font-mono">共 1 頁</span>
-      </div>
+    <!-- Main Workspace (A4 Canvas & Controls Toolbar) -->
+    <main class="flex-1 bg-slate-200/80 flex flex-col overflow-hidden relative">
 
-      <!-- Printable A4 Pages Wrapper -->
-      <div id="printPageContainer" class="w-full flex flex-col items-center">
-        <!-- Rendered A4 page elements injected dynamically -->
-      </div>
-
-    </section>
-  </main>
-
-  <!-- Group Add/Edit Modal (No Print) -->
-  <div id="groupModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-150">
-      <div class="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
-        <h3 id="modalTitle" class="font-bold text-sm">新增團體</h3>
-        <button onclick="closeGroupModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
-      </div>
-
-      <form id="groupForm" onsubmit="saveGroupModal(event)" class="p-5 space-y-4 text-xs">
-        <input type="hidden" id="modalGroupIdx">
-
-        <div>
-          <label class="block font-semibold text-slate-700 mb-1">團體名稱</label>
-          <input type="text" id="modalGroupName" required class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="例: 基督中心堂（荃灣）">
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">標籤 (如: 西 / 素食)</label>
-            <input type="text" id="modalGroupTag" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="例: (西) 或 Vegetables">
+      <!-- Formatting Toolbar -->
+      <div class="bg-white border-b border-slate-300 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-sm z-10">
+        <!-- Layout Selection -->
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1 text-xs text-slate-600 font-medium">
+            <span>每頁張數：</span>
+            <select id="gridSelect" onchange="updateGridOption(this.value)" class="border border-slate-300 rounded px-2 py-1 text-xs bg-slate-50 focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold">
+              <option value="2x2" selected>2 × 2 (每頁 4 張 - 標準大字)</option>
+              <option value="2x3">2 × 3 (每頁 6 張 - 中型)</option>
+              <option value="2x4">2 × 4 (每頁 8 張 - 精簡)</option>
+            </select>
           </div>
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">圍數 (支援 .5 半圍)</label>
-            <input type="number" id="modalGroupTables" step="0.5" min="0.5" required class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="例: 4 或 2.5">
+
+          <div class="flex items-center gap-1 text-xs text-slate-600 font-medium">
+            <span>框線樣式：</span>
+            <select id="borderSelect" onchange="updateBorderOption(this.value)" class="border border-slate-300 rounded px-2 py-1 text-xs bg-slate-50 focus:outline-none">
+              <option value="card-border-solid" selected>實線 (Solid)</option>
+              <option value="card-border-dashed">虛線 (Dashed)</option>
+              <option value="card-border-none">無框線 (None)</option>
+            </select>
           </div>
         </div>
 
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="font-semibold text-slate-700">用餐日期及餐別</label>
-            <button type="button" onclick="addModalMealRow()" class="text-indigo-600 hover:text-indigo-700 font-medium text-[11px] flex items-center gap-1">
-              <i class="fa-solid fa-plus"></i> 新增日期
-            </button>
+        <!-- Font Size Sliders -->
+        <div class="flex items-center gap-4 flex-wrap">
+          <div class="flex items-center gap-1.5 text-xs text-slate-700">
+            <span class="font-bold">標題大細:</span>
+            <button onclick="adjustFontSize('titlePt', -1)" class="w-5 h-5 bg-slate-200 hover:bg-slate-300 rounded font-bold text-center leading-none">-</button>
+            <span id="titlePtVal" class="font-mono w-8 text-center font-bold">25pt</span>
+            <button onclick="adjustFontSize('titlePt', 1)" class="w-5 h-5 bg-slate-200 hover:bg-slate-300 rounded font-bold text-center leading-none">+</button>
           </div>
-          
-          <div id="modalMealRows" class="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50">
-            <!-- Dynamic meal rows -->
+
+          <div class="flex items-center gap-1.5 text-xs text-slate-700">
+            <span class="font-bold">內文大細:</span>
+            <button onclick="adjustFontSize('bodyPt', -1)" class="w-5 h-5 bg-slate-200 hover:bg-slate-300 rounded font-bold text-center leading-none">-</button>
+            <span id="bodyPtVal" class="font-mono w-8 text-center font-bold">20pt</span>
+            <button onclick="adjustFontSize('bodyPt', 1)" class="w-5 h-5 bg-slate-200 hover:bg-slate-300 rounded font-bold text-center leading-none">+</button>
           </div>
+
+          <button onclick="resetFontSizes()" class="text-xs text-slate-500 hover:text-amber-600 underline">重設字體</button>
         </div>
-
-        <div class="pt-3 border-t border-slate-200 flex justify-end gap-2">
-          <button type="button" onclick="closeGroupModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium">取消</button>
-          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold shadow-sm">儲存團體</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Custom Alert/Confirm Modal -->
-  <div id="customDialogModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden p-5 text-center space-y-4">
-      <div id="dialogIcon" class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto text-xl">
-        <i class="fa-solid fa-circle-info"></i>
       </div>
-      <h3 id="dialogTitle" class="font-bold text-slate-800 text-base">提示</h3>
-      <p id="dialogMessage" class="text-xs text-slate-600 leading-relaxed"></p>
-      <div id="dialogButtons" class="flex justify-center gap-2 pt-2">
-        <button id="dialogOkBtn" onclick="closeCustomDialog()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-sm">確定</button>
-      </div>
-    </div>
-  </div>
 
-  <script>
-    /**
-     * PURE JAVASCRIPT ZIP & OOXML PARSER (ZERO CDN DEPENDENCY)
-     */
-    class MiniZipParser {
-      constructor(arrayBuffer) {
-        this.buffer = arrayBuffer;
-        this.view = new DataView(arrayBuffer);
-        this.entries = new Map();
-      }
-
-      async parseCentralDirectory() {
-        if (this.buffer.byteLength < 22) {
-          throw new Error("檔案過小，不是有效的 Zip / Excel 檔案。");
-        }
-
-        const magic = this.view.getUint32(0, true);
-        // Check for old binary .xls signature
-        if (magic === 0xE011CFD0 || magic === 0xD0CF11E0) {
-          throw new Error("此檔案為舊版 .xls 格式，請在 Excel 中「另存新檔」為 .xlsx 格式再上傳。");
-        }
-        if (magic !== 0x04034b50 && magic !== 0x02014b50) {
-          throw new Error("此檔案不是有效的 ZIP / .xlsx 格式檔案。");
-        }
-
-        // Search backward for End of Central Directory Record (0x06054b50)
-        let eocdOffset = -1;
-        const maxSearch = Math.min(this.buffer.byteLength, 65557);
-        const searchStart = this.buffer.byteLength - 22;
+      <!-- Preview Zoom Scaler Outer Window -->
+      <div id="previewViewport" class="flex-1 overflow-auto p-4 md:p-8 flex justify-center items-start">
         
-        for (let i = searchStart; i >= this.buffer.byteLength - maxSearch; i--) {
-          if (this.view.getUint32(i, true) === 0x06054b50) {
-            eocdOffset = i;
-            break;
-          }
-        }
+        <!-- Scaled A4 Render Area -->
+        <div id="a4ScaleWrapper" class="transition-transform origin-top">
+          <div id="printContainer" class="flex flex-col gap-8">
+            <!-- Dynamic A4 Pages will be inserted here -->
+          </div>
+        </div>
 
-        if (eocdOffset === -1) {
-          throw new Error("無法解析 Zip 目錄結構 (未找到 End of Central Directory)。");
-        }
+      </div>
 
-        const cdOffset = this.view.getUint32(eocdOffset + 16, true);
-        const cdEntriesCount = this.view.getUint16(eocdOffset + 10, true);
+    </main>
+  </div>
 
-        let offset = cdOffset;
-        for (let i = 0; i < cdEntriesCount; i++) {
-          if (offset + 46 > this.buffer.byteLength) break;
-          if (this.view.getUint32(offset, true) !== 0x02014b50) break;
+  <!-- Custom Print Fallback Modal (Triggered if window.print is blocked by iframe sandbox) -->
+  <div id="printModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 text-slate-800">
+      <div class="flex items-center justify-between border-b pb-3 mb-4">
+        <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2">
+          <span>🖨️</span> 列印與 PDF 匯出選項
+        </h3>
+        <button onclick="closePrintModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
 
-          const method = this.view.getUint16(offset + 10, true);
-          const compSize = this.view.getUint32(offset + 20, true);
-          const uncompSize = this.view.getUint32(offset + 24, true);
-          const nameLen = this.view.getUint16(offset + 28, true);
-          const extraLen = this.view.getUint16(offset + 30, true);
-          const commentLen = this.view.getUint16(offset + 32, true);
-          const localHeaderOffset = this.view.getUint32(offset + 42, true);
+      <p class="text-xs text-slate-600 mb-4 leading-relaxed">
+        由於此頁面可能嵌入於 Google Sites (iframe)，原生日誌列印可能被瀏覽器權限阻擋。請選擇以下方式進行列印：
+      </p>
 
-          const nameBytes = new Uint8Array(this.buffer, offset + 46, nameLen);
-          const filename = new TextDecoder('utf-8').decode(nameBytes);
-          const normName = filename.replace(/^[\/\\]+/, '');
+      <div class="space-y-3">
+        <button onclick="printViaBlobWindow()" class="w-full text-left p-3 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 transition flex items-start gap-3">
+          <span class="text-2xl">🌐</span>
+          <div>
+            <div class="font-bold text-sm text-amber-900">方案 A：在新視窗開啟獨立列印頁</div>
+            <div class="text-xs text-amber-700">自動彈出瀏覽器列印對話框，可直接存為 PDF</div>
+          </div>
+        </button>
 
-          this.entries.set(normName, {
-            filename: normName,
-            method,
-            compSize,
-            uncompSize,
-            localHeaderOffset
-          });
+        <button onclick="downloadHtmlFile()" class="w-full text-left p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition flex items-start gap-3">
+          <span class="text-2xl">⬇️</span>
+          <div>
+            <div class="font-bold text-sm text-slate-800">方案 B：下載獨立 HTML 列印檔</div>
+            <div class="text-xs text-slate-500">雙擊下載檔案即可以在 Chrome / Edge 開啟並 100% 精準列印</div>
+          </div>
+        </button>
 
-          offset += 46 + nameLen + extraLen + commentLen;
+        <button onclick="exportWordDoc()" class="w-full text-left p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition flex items-start gap-3">
+          <span class="text-2xl">📄</span>
+          <div>
+            <div class="font-bold text-sm text-slate-800">方案 C：匯出 Word (.doc) 檔</div>
+            <div class="text-xs text-slate-500">適合需手工修飾、調整版面後再列印</div>
+          </div>
+        </button>
+      </div>
+
+      <div class="mt-5 text-right">
+        <button onclick="closePrintModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    /* ==========================================================================
+       CRITICAL FIX #1 — Zero-Dependency Native .xlsx ZIP & XML Parser
+       ========================================================================== */
+    
+    // Safely inflate raw deflate stream without deadlocking pipe streams
+    async function inflateRaw(compressedBytes) {
+      if (typeof DecompressionStream !== 'function') {
+        throw new Error('瀏覽器版本過舊，不支援原生解壓（DecompressionStream），請升級 Chrome / Edge / Safari');
+      }
+      const stream = new Blob([compressedBytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      const ab = await new Response(stream).arrayBuffer();
+      return new Uint8Array(ab);
+    }
+
+    // Native ZIP Index Parser reading correct Local Header Offsets
+    function parseZipIndex(arrayBuffer) {
+      const bytes = new Uint8Array(arrayBuffer);
+      if (bytes.length >= 4 && bytes[0] === 0xD0 && bytes[1] === 0xCF && bytes[2] === 0x11 && bytes[3] === 0xE0) {
+        throw new Error('此檔案為舊版 .xls 格式，請先用 Excel「另存新檔」轉為 .xlsx 格式再上傳。');
+      }
+      if (bytes.length < 22 || bytes[0] !== 0x50 || bytes[1] !== 0x4B) {
+        throw new Error('檔案不是有效的 .xlsx（ZIP）格式，請確認檔案未損毀或未加密。');
+      }
+      const dv = new DataView(arrayBuffer);
+      let eocdPos = -1;
+      const minPos = Math.max(0, bytes.length - 65557);
+      for (let i = bytes.length - 22; i >= minPos; i--) {
+        if (bytes[i] === 0x50 && bytes[i+1] === 0x4B && bytes[i+2] === 0x05 && bytes[i+3] === 0x06) {
+          eocdPos = i;
+          break;
         }
       }
+      if (eocdPos === -1) throw new Error('找不到 ZIP 目錄結尾（EOCD），檔案可能不完整。');
+      
+      const totalEntries = dv.getUint16(eocdPos + 10, true);
+      const cdOffset = dv.getUint32(eocdPos + 16, true);
+      const decoder = new TextDecoder('utf-8');
+      const entries = new Map();
+      let p = cdOffset;
+      for (let idx = 0; idx < totalEntries; idx++) {
+        if (p + 46 > bytes.length || dv.getUint32(p, true) !== 0x02014b50) break;
+        const method = dv.getUint16(p + 10, true);
+        const compSize = dv.getUint32(p + 20, true);
+        const nameLen = dv.getUint16(p + 28, true);
+        const extraLen = dv.getUint16(p + 30, true);
+        const commentLen = dv.getUint16(p + 32, true);
+        const localHeaderOffset = dv.getUint32(p + 42, true);
+        const name = decoder.decode(bytes.subarray(p + 46, p + 46 + nameLen));
+        entries.set(name, { method, compSize, localHeaderOffset });
+        p += 46 + nameLen + extraLen + commentLen;
+      }
 
-      async readEntryText(filename) {
-        const normName = filename.replace(/^[\/\\]+/, '');
-        const entry = this.entries.get(normName);
+      async function readText(path) {
+        const entry = entries.get(path) || entries.get(path.replace(/^\/+/, ''));
         if (!entry) return null;
-
-        const lhOffset = entry.localHeaderOffset;
-        if (this.view.getUint32(lhOffset, true) !== 0x04034b50) {
-          throw new Error(`Zip entry header error: ${normName}`);
+        const lhoff = entry.localHeaderOffset;
+        if (dv.getUint32(lhoff, true) !== 0x04034b50) {
+          throw new Error('讀取檔案標頭失敗：' + path);
         }
+        const lNameLen = dv.getUint16(lhoff + 26, true);
+        const lExtraLen = dv.getUint16(lhoff + 28, true);
+        const start = lhoff + 30 + lNameLen + lExtraLen;
+        const raw = bytes.subarray(start, start + entry.compSize);
+        let outBytes;
+        if (entry.method === 0) outBytes = raw;
+        else if (entry.method === 8) outBytes = await inflateRaw(raw);
+        else throw new Error('不支援的 ZIP 壓縮方式：' + entry.method);
+        return decoder.decode(outBytes);
+      }
 
-        const lhNameLen = this.view.getUint16(lhOffset + 26, true);
-        const lhExtraLen = this.view.getUint16(lhOffset + 28, true);
-        const dataOffset = lhOffset + 30 + lhNameLen + lhExtraLen;
+      return { entries, readText };
+    }
 
-        const compressedData = new Uint8Array(this.buffer, dataOffset, entry.compSize);
+    /* ==========================================================================
+       GLOBAL STATE & EXCEL WORKBOOK ENGINE
+       ========================================================================== */
 
-        if (entry.method === 0) {
-          return new TextDecoder('utf-8').decode(compressedData);
-        } else if (entry.method === 8) {
-          // Decompress raw deflate stream without external dependencies
-          const blob = new Blob([compressedData]);
-          const decompressedStream = blob.stream().pipeThrough(new DecompressionStream('deflate-raw'));
-          const resp = new Response(decompressedStream);
-          const decompressedBuffer = await resp.arrayBuffer();
-          return new TextDecoder('utf-8').decode(decompressedBuffer);
-        } else {
-          throw new Error(`不支援的 Zip 壓縮格式 (method=${entry.method})`);
-        }
+    let zipEngine = null;
+    let sharedStrings = [];
+    let is1904DateSystem = false;
+    let workbookSheets = []; // Array of { name, targetPath, sheetId }
+    let parsedSheetCache = new Map(); // path -> raw extracted group rows
+    let activeSheetNames = new Set();
+    let aggregatedGroups = []; // Array of processed group objects
+    let selectedYearFilter = 'ALL';
+
+    // Formatting options
+    let currentConfig = {
+      grid: '2x2', // '2x2', '2x3', '2x4'
+      borderClass: 'card-border-solid',
+      titlePt: 25,
+      bodyPt: 20
+    };
+
+    // Global Error Listeners to guarantee Zero-Silence Feedback
+    window.addEventListener('error', function (e) {
+      updateStatus(`❌ 系統發生錯誤：${e.message}`, 'error');
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      updateStatus(`❌ 非同步運算錯誤：${e.reason ? (e.reason.message || e.reason) : e}`, 'error');
+    });
+
+    // Helper to log status to UI
+    function updateStatus(msg, type = 'info') {
+      const box = document.getElementById('excelStatusBox');
+      if (!box) return;
+      box.textContent = msg;
+      box.className = 'mt-3 p-2.5 rounded-md text-xs font-mono leading-relaxed ';
+      if (type === 'error') {
+        box.className += 'bg-red-50 text-red-700 border border-red-200 font-bold';
+      } else if (type === 'success') {
+        box.className += 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold';
+      } else {
+        box.className += 'bg-slate-100 text-slate-700 border border-slate-200';
       }
     }
 
-    /**
-     * GLOBAL STATE MANAGEMENT
-     */
-    let parsedWorkbook = {
-      zip: null,
-      date1904: false,
-      sheets: [], // { name, path, id }
-      sharedStrings: []
-    };
-
-    let activeSheetsData = new Map(); // sheetName -> parsed rows
-    let currentGroups = []; // Array of processed group card objects
-    let selectedSheetNames = new Set();
-    let currentPillFilter = 'ALL';
-
-    // Initial Sample Groups (Matching user photos)
-    const SAMPLE_GROUPS = [
-      {
-        id: 'sample-1',
-        name: '基督中心堂（荃灣）',
-        tag: '',
-        tables: 4,
-        checked: true,
-        isStatusBadge: false,
-        mealsByDate: [
-          { dateStr: '24/12', meals: [{ meal: '晚餐', tables: 4 }] },
-          { dateStr: '25/12', meals: [{ meal: '早、午餐', tables: 4 }] },
-          { dateStr: '26/12', meals: [{ meal: '早、午餐', tables: 4 }] }
-        ]
-      },
-      {
-        id: 'sample-2',
-        name: '中國香港賽艇協會(B)',
-        tag: '',
-        tables: 2.5,
-        checked: true,
-        isStatusBadge: false,
-        mealsByDate: [
-          { dateStr: '18/12', meals: [{ meal: '晚餐', tables: 2.5 }] },
-          { dateStr: '19/12', meals: [{ meal: '早、晚餐', tables: 2.5 }] },
-          { dateStr: '20/12', meals: [{ meal: '早、午餐', tables: 2.5 }] }
-        ]
-      }
-    ];
-
-    /**
-     * ON PAGE LOAD
-     */
-    window.onload = function() {
-      // Setup drag and drop
+    /* Setup Drag & Drop Handlers */
+    window.addEventListener('DOMContentLoaded', () => {
       const dropZone = document.getElementById('dropZone');
       ['dragenter', 'dragover'].forEach(eventName => {
         dropZone.addEventListener(eventName, (e) => {
           e.preventDefault();
-          dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
+          dropZone.classList.add('border-amber-500', 'bg-amber-50/50');
         }, false);
       });
       ['dragleave', 'drop'].forEach(eventName => {
         dropZone.addEventListener(eventName, (e) => {
           e.preventDefault();
-          dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+          dropZone.classList.remove('border-amber-500', 'bg-amber-50/50');
         }, false);
       });
       dropZone.addEventListener('drop', (e) => {
         const dt = e.dataTransfer;
         const files = dt.files;
         if (files && files.length > 0) {
-          processFile(files[0]);
+          document.getElementById('excelFileInput').files = files;
+          handleFileUpload({ target: { files: files } });
         }
       });
 
-      // Load initial samples
-      loadSampleData();
-    };
+      // Observe canvas container resizing to auto scale A4
+      const viewport = document.getElementById('previewViewport');
+      const resizeObserver = new ResizeObserver(() => fitA4Scale());
+      resizeObserver.observe(viewport);
 
-    /**
-     * SAMPLE DATA LOADER
-     */
-    function loadSampleData() {
-      currentGroups = JSON.parse(JSON.stringify(SAMPLE_GROUPS));
-      document.getElementById('sheetListContainer').innerHTML = '<p class="text-xs text-slate-400 text-center py-4">目前使用預設示範資料</p>';
-      document.getElementById('sheetCountBadge').innerText = '示範模式';
-      renderGroupList();
-      renderPrintPreview();
-    }
+      // Load initial demo data for immediate visual confirmation
+      loadDemoData();
+    });
 
-    /**
-     * FILE UPLOAD HANDLER
-     */
-    async function handleFileUpload(e) {
-      const file = e.target.files[0];
+    /* Handle File Upload Process */
+    async function handleFileUpload(event) {
+      const file = event.target.files && event.target.files[0];
       if (!file) return;
-      await processFile(file);
-      e.target.value = ''; // Reset input to allow re-uploading same file
-    }
-
-    async function processFile(file) {
-      const statusEl = document.getElementById('parsingStatus');
-      const errorAlert = document.getElementById('errorAlert');
-      const errorMsg = document.getElementById('errorMessage');
-
-      errorAlert.classList.add('hidden');
-      statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> 解析中...';
 
       try {
-        const buffer = await file.arrayBuffer();
-        const zip = new MiniZipParser(buffer);
-        await zip.parseCentralDirectory();
+        updateStatus(`⏳ 正在讀取檔案「${file.name}」...`);
+        const arrayBuffer = await file.arrayBuffer();
 
-        // 1. Parse workbook.xml
-        const wbXmlText = await zip.readEntryText('xl/workbook.xml');
-        if (!wbXmlText) throw new Error("無效的 Excel 檔案：找不到 xl/workbook.xml");
+        updateStatus(`⏳ 正在讀取工作表目錄...`);
+        zipEngine = parseZipIndex(arrayBuffer);
 
+        // Parse workbook.xml
+        const wbXmlStr = await zipEngine.readText('xl/workbook.xml');
+        if (!wbXmlStr) throw new Error('無法找到 xl/workbook.xml');
         const domParser = new DOMParser();
-        const wbDoc = domParser.parseFromString(wbXmlText, 'text/xml');
+        const wbDoc = domParser.parseFromString(wbXmlStr, 'application/xml');
 
-        // Check date1904
-        const wbPr = wbDoc.querySelector('workbookPr');
-        const date1904 = wbPr ? (wbPr.getAttribute('date1904') === '1' || wbPr.getAttribute('date1904') === 'true') : false;
+        // Check 1904 date system
+        const wbPr = wbDoc.getElementsByTagName('workbookPr')[0] || wbDoc.getElementsByTagNameNS('*', 'workbookPr')[0];
+        is1904DateSystem = wbPr ? (wbPr.getAttribute('date1904') === '1' || wbPr.getAttribute('date1904') === 'true') : false;
 
-        // 2. Parse relationshipsxl/_rels/workbook.xml.rels
-        const relsText = await zip.readEntryText('xl/_rels/workbook.xml.rels') || await zip.readEntryText('xl/_rels/workbook.xml.rels');
+        // Parse workbook rels to map rId -> sheet target path
+        const wbRelsStr = await zipEngine.readText('xl/_rels/workbook.xml.rels');
         const relsMap = new Map();
-        if (relsText) {
-          const relsDoc = domParser.parseFromString(relsText, 'text/xml');
-          relsDoc.querySelectorAll('Relationship').forEach(rel => {
+        if (wbRelsStr) {
+          const relsDoc = domParser.parseFromString(wbRelsStr, 'application/xml');
+          const relEls = relsDoc.getElementsByTagNameNS('*', 'Relationship');
+          for (let i = 0; i < relEls.length; i++) {
+            const rel = relEls[i];
             const id = rel.getAttribute('Id');
             let target = rel.getAttribute('Target');
-            if (!target.startsWith('xl/') && !target.startsWith('/xl/')) {
-              target = 'xl/' + target.replace(/^\/+/, '');
-            } else {
+            if (target) {
               target = target.replace(/^\/+/, '');
+              if (!target.startsWith('xl/')) target = 'xl/' + target;
+              relsMap.set(id, target);
             }
-            relsMap.set(id, target);
-          });
+          }
         }
 
-        // Parse sheets list
-        const sheetNodes = wbDoc.querySelectorAll('sheet');
-        const sheets = [];
-        sheetNodes.forEach(s => {
+        // Extract Sheet names
+        const sheetEls = wbDoc.getElementsByTagNameNS('*', 'sheet');
+        workbookSheets = [];
+        for (let i = 0; i < sheetEls.length; i++) {
+          const s = sheetEls[i];
           const name = s.getAttribute('name');
-          const rId = s.getAttribute('r:id') || s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
-          const path = relsMap.get(rId) || `xl/worksheets/sheet${sheets.length + 1}.xml`;
-          sheets.push({ name, path, id: rId });
-        });
-
-        // 3. Fast Parse sharedStrings.xml
-        const ssText = await zip.readEntryText('xl/sharedStrings.xml');
-        const sharedStrings = [];
-        if (ssText) {
-          const ssDoc = domParser.parseFromString(ssText, 'text/xml');
-          const siNodes = ssDoc.querySelectorAll('si');
-          siNodes.forEach(si => {
-            // Get text content of all <t> except those inside <rPh>
-            let str = '';
-            si.childNodes.forEach(child => {
-              if (child.nodeName === 't') {
-                str += child.textContent || '';
-              } else if (child.nodeName === 'r') {
-                child.querySelectorAll('t').forEach(tNode => {
-                  str += tNode.textContent || '';
-                });
-              }
-            });
-            sharedStrings.push(str);
-          });
+          let rId = '';
+          for (let a = 0; a < s.attributes.length; a++) {
+            const attr = s.attributes[a];
+            if (attr.localName === 'id' || attr.name === 'r:id' || attr.name.endsWith(':id')) {
+              rId = attr.value;
+              break;
+            }
+          }
+          const targetPath = relsMap.get(rId) || `xl/worksheets/sheet${i + 1}.xml`;
+          workbookSheets.push({ name, targetPath, sheetId: s.getAttribute('sheetId') });
         }
 
-        parsedWorkbook = { zip, date1904, sheets, sharedStrings };
-        activeSheetsData.clear();
-        selectedSheetNames.clear();
-
-        // Render Sheet selector list
-        renderSheetList();
-
-        // Auto-select latest weekly sheet (e.g. 11W4 or similar)
-        const weeklySheets = sheets.filter(s => isWeeklySheet(s.name));
-        if (weeklySheets.length > 0) {
-          const defaultSheet = weeklySheets[weeklySheets.length - 1];
-          selectedSheetNames.add(defaultSheet.name);
-          updateSheetCheckboxes();
-          await parseSelectedSheetsAndMerge();
+        // Parse sharedStrings.xml if present
+        updateStatus(`⏳ 正在載入共享字串庫 (SharedStrings)...`);
+        sharedStrings = [];
+        const ssXmlStr = await zipEngine.readText('xl/sharedStrings.xml');
+        if (ssXmlStr) {
+          const ssDoc = domParser.parseFromString(ssXmlStr, 'application/xml');
+          const siEls = ssDoc.getElementsByTagNameNS('*', 'si');
+          for (let i = 0; i < siEls.length; i++) {
+            const si = siEls[i];
+            let text = '';
+            // Get all descendant <t> elements excluding phonetic runs <rPh>
+            const tEls = si.getElementsByTagNameNS('*', 't');
+            for (let j = 0; j < tEls.length; j++) {
+              const tNode = tEls[j];
+              if (tNode.parentNode && tNode.parentNode.localName === 'rPh') continue;
+              text += tNode.textContent || '';
+            }
+            sharedStrings.push(text);
+          }
         }
 
-        statusEl.innerHTML = '<span class="text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check"></i> 解析成功</span>';
+        // Clear cache
+        parsedSheetCache.clear();
+        activeSheetNames.clear();
+
+        updateStatus(`✅ 已載入「${file.name}」（共 ${workbookSheets.length} 張工作表），請在下方勾選週表！`, 'success');
+
+        // Reveal Sheet Section and Render List
+        document.getElementById('sheetSection').classList.remove('hidden');
+        buildSheetSelectorUI();
+
+        // Auto-select week sheet closest to current week or first 2026 weekly sheet
+        autoSelectDefaultSheet();
+
       } catch (err) {
         console.error(err);
-        statusEl.innerHTML = '<span class="text-red-600 font-semibold"><i class="fa-solid fa-circle-xmark"></i> 解析失敗</span>';
-        errorMsg.innerText = err.message || '無法解析該 Excel 檔案，請確認格式是否正確。';
-        errorAlert.classList.remove('hidden');
+        updateStatus(`❌ 解析失敗：${err.message}`, 'error');
+      } finally {
+        document.getElementById('excelFileInput').value = '';
       }
     }
 
-    /**
-     * SHEET FILTERING & LIST UI
-     */
+    /* ==========================================================================
+       SHEET SELECTOR & YEAR FILTER LOGIC
+       ========================================================================== */
+
     function isWeeklySheet(name) {
-      const nonWeeklyKeywords = ['空白表', 'MENU', '菜式分量', '工作表1', '防疫餐餐單', 'Sheet'];
-      for (let k of nonWeeklyKeywords) {
-        if (name.includes(k)) return false;
+      const skipKeywords = ['MENU', '防疫餐單', '菜式分量', '菜式份量', '空白表', '工作表1', 'Sheet1', '範本'];
+      for (let kw of skipKeywords) {
+        if (name.toUpperCase().includes(kw.toUpperCase())) return false;
       }
       return true;
     }
 
-    function renderSheetList() {
-      const container = document.getElementById('sheetListContainer');
-      const showAll = document.getElementById('toggleAllSheets').checked;
-      const searchVal = document.getElementById('sheetSearchInput').value.trim().toLowerCase();
-
-      if (!parsedWorkbook.sheets || parsedWorkbook.sheets.length === 0) return;
-
-      let filtered = parsedWorkbook.sheets.filter(s => {
-        if (!showAll && !isWeeklySheet(s.name)) return false;
-        if (currentPillFilter !== 'ALL' && !s.name.includes(currentPillFilter)) return false;
-        if (searchVal && !s.name.toLowerCase().includes(searchVal)) return false;
-        return true;
+    function buildSheetSelectorUI() {
+      const yearSet = new Set();
+      workbookSheets.forEach(s => {
+        const match = s.name.match(/\b(20\d\d)\b/);
+        if (match) yearSet.add(match[1]);
       });
 
-      if (filtered.length === 0) {
-        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">沒有找到相符的工作表</p>';
-        return;
-      }
+      const yearPills = document.getElementById('yearPills');
+      yearPills.innerHTML = '';
 
-      let html = '';
-      filtered.forEach(s => {
-        const isChecked = selectedSheetNames.has(s.name);
-        html += `
-          <label class="flex items-center justify-between p-1.5 hover:bg-slate-100 rounded cursor-pointer transition text-xs">
-            <div class="flex items-center space-x-2 truncate">
-              <input type="checkbox" value="${escapeHtml(s.name)}" ${isChecked ? 'checked' : ''} onchange="onSheetToggle(this)" class="rounded text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5">
-              <span class="font-mono ${isChecked ? 'font-bold text-indigo-700' : 'text-slate-700'} truncate">${escapeHtml(s.name)}</span>
-            </div>
-            ${isWeeklySheet(s.name) ? '<span class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0">週表</span>' : ''}
-          </label>
-        `;
-      });
-
-      container.innerHTML = html;
-      updateSheetCountBadge();
-    }
-
-    function filterSheets() {
-      renderSheetList();
-    }
-
-    function setSheetPill(pill) {
-      currentPillFilter = pill;
-      document.querySelectorAll('#sheetFilterPills button').forEach(btn => {
-        btn.className = 'pill-btn px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200';
-      });
-      event.target.className = 'pill-btn px-2.5 py-1 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200';
-      renderSheetList();
-    }
-
-    function selectAllVisibleSheets(select) {
-      const container = document.getElementById('sheetListContainer');
-      const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-      checkboxes.forEach(cb => {
-        cb.checked = select;
-        if (select) selectedSheetNames.add(cb.value);
-        else selectedSheetNames.delete(cb.value);
-      });
-      updateSheetCountBadge();
-      parseSelectedSheetsAndMerge();
-    }
-
-    async function onSheetToggle(cb) {
-      if (cb.checked) {
-        selectedSheetNames.add(cb.value);
-      } else {
-        selectedSheetNames.delete(cb.value);
-      }
-      updateSheetCountBadge();
-      await parseSelectedSheetsAndMerge();
-    }
-
-    function updateSheetCheckboxes() {
-      const container = document.getElementById('sheetListContainer');
-      const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-      checkboxes.forEach(cb => {
-        cb.checked = selectedSheetNames.has(cb.value);
-      });
-    }
-
-    function updateSheetCountBadge() {
-      document.getElementById('sheetCountBadge').innerText = `已選 ${selectedSheetNames.size} 個`;
-    }
-
-    /**
-     * ON-DEMAND WORKSHEET PARSER
-     */
-    async function parseSelectedSheetsAndMerge() {
-      if (selectedSheetNames.size === 0) {
-        currentGroups = [];
-        renderGroupList();
-        renderPrintPreview();
-        return;
-      }
-
-      // Decompress and parse only newly selected sheets
-      for (let sheetName of selectedSheetNames) {
-        if (!activeSheetsData.has(sheetName)) {
-          const sheetObj = parsedWorkbook.sheets.find(s => s.name === sheetName);
-          if (sheetObj) {
-            const sheetXml = await parsedWorkbook.zip.readEntryText(sheetObj.path);
-            if (sheetXml) {
-              const parsedSheet = parseSingleWorksheet(sheetXml);
-              activeSheetsData.set(sheetName, parsedSheet);
-            }
-          }
-        }
-      }
-
-      // Merge all selected sheet data
-      mergeAndBuildGroups();
-    }
-
-    function parseSingleWorksheet(xmlText) {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(xmlText, 'text/xml');
-      const rows = doc.querySelectorAll('row');
-      
-      const sheetData = []; // [{ rowNum, cells: { colNum: val } }]
-
-      rows.forEach(row => {
-        const rNum = parseInt(row.getAttribute('r'));
-        if (rNum > 35) return; // Skip rows > 35 for ultra fast execution
-
-        const rowCells = {};
-        const cNodes = row.querySelectorAll('c');
-
-        cNodes.forEach(c => {
-          const ref = c.getAttribute('r');
-          const colStr = ref.replace(/[0-9]/g, '');
-          const colNum = colToNum(colStr);
-          const type = c.getAttribute('t');
-
-          let val = null;
-          const vNode = c.querySelector('v');
-          const isNode = c.querySelector('is');
-
-          if (type === 's' && vNode) {
-            const idx = parseInt(vNode.textContent);
-            val = parsedWorkbook.sharedStrings[idx] ?? '';
-          } else if (type === 'str' && vNode) {
-            val = vNode.textContent;
-          } else if (type === 'inlineStr' && isNode) {
-            let inline = '';
-            isNode.querySelectorAll('t').forEach(t => inline += t.textContent);
-            val = inline;
-          } else if (type === 'e') {
-            val = null;
-          } else if (vNode) {
-            val = parseFloat(vNode.textContent);
-          }
-
-          rowCells[colNum] = val;
-        });
-
-        sheetData.push({ rNum, cells: rowCells });
-      });
-
-      return sheetData;
-    }
-
-    function colToNum(colStr) {
-      let num = 0;
-      for (let i = 0; i < colStr.length; i++) {
-        num = num * 26 + (colStr.charCodeAt(i) - 64);
-      }
-      return num;
-    }
-
-    /**
-     * WEEKLY MEAL MATRIX PARSER & COMPOSITE SPLITTING
-     */
-    function mergeAndBuildGroups() {
-      const mergedGroupsMap = new Map(); // key -> group object
-
-      for (let sheetName of selectedSheetNames) {
-        const rows = activeSheetsData.get(sheetName);
-        if (!rows) continue;
-
-        // 1. Find Header Row containing '團體'
-        let headerRowObj = null;
-        for (let r of rows) {
-          // Check columns 2..5
-          for (let c = 2; c <= 5; c++) {
-            const val = String(r.cells[c] || '');
-            if (val.includes('團體')) {
-              headerRowObj = r;
-              break;
-            }
-          }
-          if (headerRowObj) break;
-        }
-
-        if (!headerRowObj) {
-          // Fallback to row 8
-          headerRowObj = rows.find(r => r.rNum === 8) || rows[0];
-        }
-
-        const headerRowNum = headerRowObj ? headerRowObj.rNum : 8;
-
-        // 2. Extract Date Columns
-        let dateCols = []; // [{ dcol, dateStr }]
-        if (headerRowObj) {
-          for (let col = 8; col <= 50; col += 6) {
-            const cellVal = headerRowObj.cells[col];
-            let dateStr = null;
-
-            if (typeof cellVal === 'number' && cellVal > 35000 && cellVal < 65000) {
-              dateStr = excelSerialToDateStr(cellVal, parsedWorkbook.date1904);
-            } else if (typeof cellVal === 'string' && cellVal.trim()) {
-              const m = cellVal.match(/(\d{1,2}\/\d{1,2})/);
-              if (m) dateStr = m[1];
-            }
-
-            if (dateStr) {
-              dateCols.push({ dcol: col, dateStr });
-            }
-          }
-        }
-
-        // Fallback for D1 serial if Row 8 had no dates
-        if (dateCols.length === 0) {
-          const d1Row = rows.find(r => r.rNum === 1);
-          const d1Val = d1Row ? d1Row.cells[4] || d1Row.cells[3] : null;
-          let startDate = null;
-          if (typeof d1Val === 'number' && d1Val > 35000) {
-            startDate = d1Val;
-          }
-          const baseCols = [8, 14, 20, 26, 32, 38, 44];
-          baseCols.forEach((col, idx) => {
-            const serial = startDate ? startDate + idx : 45284 + idx; // default dummy
-            dateCols.push({ dcol: col, dateStr: excelSerialToDateStr(serial, parsedWorkbook.date1904) });
-          });
-        }
-
-        // 3. Iterate Group Rows (Row headerRowNum + 3 up to Row 30 or '每餐總')
-        const groupRows = rows.filter(r => r.rNum >= headerRowNum + 3 && r.rNum <= 32);
-
-        for (let r of groupRows) {
-          const colB = String(r.cells[2] || '');
-          if (colB.includes('每餐總') || colB.includes('總枱數')) break;
-
-          const groupNameRaw = String(r.cells[3] || '').trim();
-          if (!groupNameRaw) continue;
-
-          // Process each date for this group
-          dateCols.forEach(({ dcol, dateStr }) => {
-            const bVal = r.cells[dcol];     // Breakfast
-            const lVal = r.cells[dcol + 2]; // Lunch
-            const dVal = r.cells[dcol + 4]; // Dinner
-
-            parseMealCell(groupNameRaw, dateStr, '早餐', bVal, mergedGroupsMap);
-            parseMealCell(groupNameRaw, dateStr, '午餐', lVal, mergedGroupsMap);
-            parseMealCell(groupNameRaw, dateStr, '晚餐', dVal, mergedGroupsMap);
-          });
-        }
-      }
-
-      // Convert map to array and finalize structure
-      const rawList = Array.from(mergedGroupsMap.values());
-      currentGroups = finalizeGroupsStructure(rawList);
-
-      renderGroupList();
-      renderPrintPreview();
-    }
-
-    /**
-     * PARSE INDIVIDUAL MEAL CELL WITH BBQ & COMPOSITE VEG SPLITTING
-     */
-    function parseMealCell(groupNameRaw, dateStr, mealType, val, mergedGroupsMap) {
-      if (val === null || val === undefined) return;
-      const strVal = String(val).trim();
-      if (!strVal || strVal === '0' || strVal === 'X' || strVal === 'x') return;
-
-      // Ignore note cells without tables
-      if (/^\(人數有變\)$|^2組原烹$|^↑.*加底$|148 SW|租飯堂|食PIZZA/i.test(strVal)) return;
-
-      // Extract status badges like (取消), (HOLD), (CX)
-      const isCancelled = /取消|HOLD|CX/i.test(groupNameRaw) || /取消|HOLD|CX/i.test(strVal);
-
-      // Check composite split formats e.g. "西\n9.5\n(半枱西素)", "9枱\n(A餐)\n(8.5枱正常)\n(半枱素)"
-      let vegTables = 0;
-      let regTables = 0;
-      let isBBQ = false;
-      let bbqTables = 0;
-      let isWestern = /西/.test(groupNameRaw) || /西/.test(strVal);
-      let isVegTag = /素/.test(groupNameRaw) || /素/.test(strVal);
-
-      // BBQ Regex Checks
-      const bbqMatch = strVal.match(/BBQ\s*([\d\.]+)\s*(?:枱|份)?/i);
-      const headcountBbqMatch = strVal.match(/(\d+)\s*人\s*BBQ/i);
-      const bbqNumOnly = strVal.match(/BBQ\s*(\d+)/i);
-
-      if (bbqMatch) {
-        isBBQ = true;
-        bbqTables = parseFloat(bbqMatch[1]);
-      } else if (headcountBbqMatch) {
-        isBBQ = true;
-        const count = parseInt(headcountBbqMatch[1]);
-        bbqTables = Math.ceil((count / 8) * 2) / 2; // round up to 0.5
-      } else if (bbqNumOnly) {
-        isBBQ = true;
-        const num = parseFloat(bbqNumOnly[1]);
-        bbqTables = num >= 8 ? Math.ceil((num / 8) * 2) / 2 : num;
-      }
-
-      if (isBBQ) {
-        addMealToMap(mergedGroupsMap, groupNameRaw, isWestern, isVegTag, dateStr, 'BBQ', bbqTables, isCancelled);
-        return;
-      }
-
-      // Check explicit Veg vs Regular Split
-      const halfVegMatch = strVal.match(/半枱(?:西)?素/);
-      const numVegMatch = strVal.match(/([\d\.]+)枱(?:西)?素/);
-      if (halfVegMatch) vegTables = 0.5;
-      else if (numVegMatch) vegTables = parseFloat(numVegMatch[1]);
-
-      const regMatch = strVal.match(/([\d\.]+)枱正常/);
-      if (regMatch) {
-        regTables = parseFloat(regMatch[1]);
-      } else {
-        // Find leading numeric table count
-        const leadNum = strVal.match(/^([\d\.]+)/);
-        if (leadNum) {
-          const total = parseFloat(leadNum[1]);
-          regTables = vegTables > 0 ? Math.max(0, total - vegTables) : total;
-        } else if (typeof val === 'number') {
-          regTables = vegTables > 0 ? Math.max(0, val - vegTables) : val;
-        }
-      }
-
-      // If split into both regular and veg entries
-      if (regTables > 0) {
-        addMealToMap(mergedGroupsMap, groupNameRaw, isWestern, false, dateStr, mealType, regTables, isCancelled);
-      }
-      if (vegTables > 0) {
-        const vegGroupName = groupNameRaw.includes('(素)') ? groupNameRaw : `${groupNameRaw} (素)`;
-        addMealToMap(mergedGroupsMap, vegGroupName, isWestern, true, dateStr, mealType, vegTables, isCancelled);
-      }
-    }
-
-    function addMealToMap(map, groupName, isWestern, isVeg, dateStr, mealType, tables, isCancelled) {
-      const key = `${groupName.trim()}_${isVeg ? 'VEG' : 'REG'}`;
-      if (!map.has(key)) {
-        map.set(key, {
-          rawName: groupName.trim(),
-          isWestern,
-          isVeg,
-          isCancelled,
-          mealsRecord: [] // [{ dateStr, mealType, tables }]
-        });
-      }
-
-      const groupObj = map.get(key);
-      groupObj.mealsRecord.push({ dateStr, mealType, tables });
-    }
-
-    /**
-     * FINALIZE GROUP STRUCTURE & SAME-DAY MEAL MERGING
-     */
-    function finalizeGroupsStructure(rawList) {
-      return rawList.map((g, idx) => {
-        // Group meals by date
-        const dateMap = new Map(); // dateStr -> [{ mealType, tables }]
-        g.mealsRecord.forEach(m => {
-          if (!dateMap.has(m.dateStr)) dateMap.set(m.dateStr, []);
-          dateMap.get(m.dateStr).push(m);
-        });
-
-        // Compute max/effective tables for this group
-        let maxTables = 0;
-        const mealsByDate = [];
-
-        dateMap.forEach((meals, dateStr) => {
-          // Merge same-day meals with identical table counts
-          const bbqMeal = meals.find(m => m.mealType === 'BBQ');
-          const stdMeals = meals.filter(m => m.mealType !== 'BBQ');
-
-          const mergedMealsForDate = [];
-
-          if (stdMeals.length > 0) {
-            // Check if all std meals have same table count
-            const firstTables = stdMeals[0].tables;
-            const allSame = stdMeals.every(m => m.tables === firstTables);
-
-            if (allSame) {
-              const types = stdMeals.map(m => m.mealType);
-              let combinedLabel = '餐';
-              if (types.includes('早餐') && types.includes('午餐') && types.includes('晚餐')) {
-                combinedLabel = '早、午、晚餐';
-              } else if (types.includes('早餐') && types.includes('午餐')) {
-                combinedLabel = '早、午餐';
-              } else if (types.includes('早餐') && types.includes('晚餐')) {
-                combinedLabel = '早、晚餐';
-              } else if (types.includes('午餐') && types.includes('晚餐')) {
-                combinedLabel = '午、晚餐';
-              } else {
-                combinedLabel = types.join('、');
-              }
-              mergedMealsForDate.push({ meal: combinedLabel, tables: firstTables });
-              if (firstTables > maxTables) maxTables = firstTables;
-            } else {
-              // Separate lines
-              stdMeals.forEach(m => {
-                mergedMealsForDate.push({ meal: m.mealType, tables: m.tables });
-                if (m.tables > maxTables) maxTables = m.tables;
-              });
-            }
-          }
-
-          if (bbqMeal) {
-            mergedMealsForDate.push({ meal: 'BBQ', tables: bbqMeal.tables });
-            if (bbqMeal.tables > maxTables) maxTables = bbqMeal.tables;
-          }
-
-          mealsByDate.push({ dateStr, meals: mergedMealsForDate });
-        });
-
-        // Determine tags
-        let tag = '';
-        if (g.isWestern && g.isVeg) tag = '(西) Vegetables';
-        else if (g.isWestern) tag = '（西）';
-        else if (g.isVeg) tag = 'Vegetables';
-
-        return {
-          id: `group-${idx}-${Date.now()}`,
-          name: g.rawName,
-          tag,
-          tables: maxTables || 1,
-          checked: !g.isCancelled,
-          isStatusBadge: g.isCancelled,
-          mealsByDate
+      const createPill = (label, yearVal) => {
+        const btn = document.createElement('button');
+        btn.className = `px-2 py-0.5 rounded text-xs font-semibold border transition ${selectedYearFilter === yearVal ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'}`;
+        btn.textContent = label;
+        btn.onclick = () => {
+          selectedYearFilter = yearVal;
+          buildSheetSelectorUI();
+          filterSheetsList();
         };
-      });
-    }
-
-    function excelSerialToDateStr(serial, date1904 = false) {
-      if (typeof serial !== 'number' || isNaN(serial)) return null;
-      const epoch = date1904 ? new Date(Date.UTC(1904, 0, 1)) : new Date(Date.UTC(1899, 11, 30));
-      const millis = Math.round(serial) * 86400000;
-      const d = new Date(epoch.getTime() + millis);
-      if (isNaN(d.getTime())) return null;
-      return `${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
-    }
-
-    /**
-     * RENDER GROUP MANAGEMENT LIST
-     */
-    function renderGroupList() {
-      const container = document.getElementById('groupListContainer');
-      const badge = document.getElementById('groupCountBadge');
-      badge.innerText = `${currentGroups.length} 個團體`;
-
-      if (currentGroups.length === 0) {
-        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">目前沒有團體資料</p>';
-        return;
-      }
-
-      let html = '';
-      currentGroups.forEach((g, idx) => {
-        const isHalf = (g.tables % 1 !== 0);
-        html += `
-          <div class="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-indigo-300 transition">
-            <div class="flex items-center space-x-2.5 overflow-hidden">
-              <input type="checkbox" ${g.checked ? 'checked' : ''} onchange="toggleGroupCheck(${idx})" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
-              <div class="truncate">
-                <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-slate-800 text-xs truncate font-kai">${escapeHtml(g.name)}</span>
-                  ${g.isStatusBadge ? '<span class="text-[10px] bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.2 rounded">已取消/HOLD</span>' : ''}
-                  ${isHalf ? '<span class="text-[10px] bg-amber-100 text-amber-700 border border-amber-300 px-1.5 py-0.2 rounded font-semibold">包含半圍</span>' : ''}
-                </div>
-                <div class="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                  <span>${g.tag ? escapeHtml(g.tag) + ' • ' : ''}${g.tables} 枱</span>
-                  <span>(${g.mealsByDate.length} 天菜單)</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-1 shrink-0">
-              <button onclick="openEditGroupModal(${idx})" class="p-1 text-slate-400 hover:text-indigo-600 transition" title="編輯"><i class="fa-solid fa-pen-to-square"></i></button>
-              <button onclick="deleteGroup(${idx})" class="p-1 text-slate-400 hover:text-red-600 transition" title="刪除"><i class="fa-solid fa-trash-can"></i></button>
-            </div>
-          </div>
-        `;
-      });
-
-      container.innerHTML = html;
-    }
-
-    function toggleGroupCheck(idx) {
-      currentGroups[idx].checked = !currentGroups[idx].checked;
-      renderPrintPreview();
-    }
-
-    function selectAllGroups(select) {
-      currentGroups.forEach(g => g.checked = select);
-      renderGroupList();
-      renderPrintPreview();
-    }
-
-    function deleteGroup(idx) {
-      showCustomDialog("確認刪除", `確定要刪除團體「${currentGroups[idx].name}」嗎？`, true, () => {
-        currentGroups.splice(idx, 1);
-        renderGroupList();
-        renderPrintPreview();
-      });
-    }
-
-    /**
-     * RENDER PRINT PREVIEW & PHYSICAL CARD LAYOUT
-     */
-    function renderPrintPreview() {
-      const container = document.getElementById('printPageContainer');
-      const borderStyle = document.getElementById('borderSelect').value;
-      const gridType = document.getElementById('gridSelect').value; // '4', '6', '8'
-      const cardsPerPage = parseInt(gridType);
-
-      // Expand groups into individual table cards (Full cards + Half card if .5)
-      const expandedCards = [];
-
-      currentGroups.filter(g => g.checked).forEach(group => {
-        const fullCardsCount = Math.floor(group.tables);
-        const hasHalfCard = (group.tables % 1 !== 0);
-
-        // Generate full-table cards
-        for (let i = 0; i < fullCardsCount; i++) {
-          expandedCards.push({
-            groupName: group.name,
-            tag: group.tag,
-            isHalf: false,
-            tablesDisplay: fullCardsCount,
-            mealsByDate: group.mealsByDate
-          });
-        }
-
-        // Generate half-table card if applicable
-        if (hasHalfCard) {
-          expandedCards.push({
-            groupName: group.name,
-            tag: group.tag,
-            isHalf: true,
-            tablesDisplay: 0.5,
-            mealsByDate: group.mealsByDate
-          });
-        }
-      });
-
-      if (expandedCards.length === 0) {
-        container.innerHTML = `
-          <div class="a4-page grid-${gridType} flex items-center justify-center text-slate-400 font-kai">
-            <p>沒有選取的團體列印資料</p>
-          </div>
-        `;
-        document.getElementById('previewPageInfo').innerText = '共 0 頁';
-        return;
-      }
-
-      // Group cards into pages
-      const pages = [];
-      for (let i = 0; i < expandedCards.length; i += cardsPerPage) {
-        pages.push(expandedCards.slice(i, i + cardsPerPage));
-      }
-
-      document.getElementById('previewPageInfo').innerText = `共 ${pages.length} 頁 (卡片總數: ${expandedCards.length})`;
-
-      let html = '';
-      pages.forEach((pageCards) => {
-        html += `<div class="a4-page grid-${gridType}">`;
-
-        pageCards.forEach(card => {
-          const isLongTitle = card.groupName.length > 10;
-          
-          html += `
-            <div class="table-card ${borderStyle} font-kai">
-              <!-- Top Header -->
-              <div class="card-header-box">
-                <div class="card-title ${isLongTitle ? 'card-title-long' : ''}">${escapeHtml(card.groupName)}</div>
-                ${card.tag ? `<div class="card-tag">${escapeHtml(card.tag)}</div>` : ''}
-                ${card.isHalf ? `<div class="card-half-badge">（半圍）</div>` : ''}
-              </div>
-
-              <!-- Middle Dates & Meals -->
-              <div class="card-body-dates">
-                ${card.mealsByDate.map(d => `
-                  <div class="card-date-block">
-                    <div class="card-date-title">${escapeHtml(d.dateStr)}</div>
-                    ${d.meals.map(m => `
-                      <div class="card-meal-line">${escapeHtml(m.meal)} ${m.tables} 枱</div>
-                    `).join('')}
-                  </div>
-                `).join('')}
-              </div>
-
-              <!-- Bottom Footer -->
-              <div class="card-footer">
-                ${card.isHalf ? '（限最多 4 人一枱）' : '（限最多 8 人一枱）'}
-              </div>
-            </div>
-          `;
-        });
-
-        // Fill empty grid cells if last page is incomplete
-        const remaining = cardsPerPage - pageCards.length;
-        for (let r = 0; r < remaining; r++) {
-          html += `<div class="table-card ${borderStyle} border-dashed-card opacity-20"></div>`;
-        }
-
-        html += `</div>`;
-      });
-
-      container.innerHTML = html;
-    }
-
-    /**
-     * CONFIG & FONT SCALING
-     */
-    function updatePrintConfig() {
-      renderPrintPreview();
-    }
-
-    function updateFontScale(val) {
-      document.getElementById('fontScaleLabel').innerText = `${val}%`;
-      const scaleFactor = val / 100;
-      document.documentElement.style.setProperty('--card-scale', scaleFactor);
-    }
-
-    /**
-     * ADD / EDIT GROUP MODAL HANDLERS
-     */
-    function openAddGroupModal() {
-      document.getElementById('modalTitle').innerText = '新增團體';
-      document.getElementById('modalGroupIdx').value = '-1';
-      document.getElementById('modalGroupName').value = '';
-      document.getElementById('modalGroupTag').value = '';
-      document.getElementById('modalGroupTables').value = '4';
-
-      const container = document.getElementById('modalMealRows');
-      container.innerHTML = '';
-      addModalMealRow('24/12', '晚餐', 4);
-      addModalMealRow('25/12', '早、午餐', 4);
-
-      document.getElementById('groupModal').classList.remove('hidden');
-    }
-
-    function openEditGroupModal(idx) {
-      const g = currentGroups[idx];
-      document.getElementById('modalTitle').innerText = '編輯團體';
-      document.getElementById('modalGroupIdx').value = idx;
-      document.getElementById('modalGroupName').value = g.name;
-      document.getElementById('modalGroupTag').value = g.tag;
-      document.getElementById('modalGroupTables').value = g.tables;
-
-      const container = document.getElementById('modalMealRows');
-      container.innerHTML = '';
-      g.mealsByDate.forEach(d => {
-        d.meals.forEach(m => {
-          addModalMealRow(d.dateStr, m.meal, m.tables);
-        });
-      });
-
-      document.getElementById('groupModal').classList.remove('hidden');
-    }
-
-    function closeGroupModal() {
-      document.getElementById('groupModal').classList.add('hidden');
-    }
-
-    function addModalMealRow(dateStr = '', meal = '早、午餐', tables = 4) {
-      const container = document.getElementById('modalMealRows');
-      const div = document.createElement('div');
-      div.className = 'flex items-center gap-2 border-b border-slate-200/60 pb-2';
-      div.innerHTML = `
-        <input type="text" placeholder="日期 (例: 24/12)" value="${escapeHtml(dateStr)}" required class="w-1/3 p-1.5 bg-white border border-slate-300 rounded text-xs">
-        <input type="text" placeholder="餐別 (例: 晚餐)" value="${escapeHtml(meal)}" required class="w-1/3 p-1.5 bg-white border border-slate-300 rounded text-xs">
-        <input type="number" step="0.5" placeholder="枱數" value="${tables}" required class="w-1/4 p-1.5 bg-white border border-slate-300 rounded text-xs">
-        <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-circle-minus"></i></button>
-      `;
-      container.appendChild(div);
-    }
-
-    function saveGroupModal(e) {
-      e.preventDefault();
-      const idx = parseInt(document.getElementById('modalGroupIdx').value);
-      const name = document.getElementById('modalGroupName').value.trim();
-      const tag = document.getElementById('modalGroupTag').value.trim();
-      const tables = parseFloat(document.getElementById('modalGroupTables').value);
-
-      const rows = document.querySelectorAll('#modalMealRows > div');
-      const dateMap = new Map();
-
-      rows.forEach(r => {
-        const inputs = r.querySelectorAll('input');
-        const dStr = inputs[0].value.trim();
-        const mStr = inputs[1].value.trim();
-        const tNum = parseFloat(inputs[2].value);
-
-        if (dStr && mStr) {
-          if (!dateMap.has(dStr)) dateMap.set(dStr, []);
-          dateMap.get(dStr).push({ meal: mStr, tables: tNum });
-        }
-      });
-
-      const mealsByDate = [];
-      dateMap.forEach((meals, dateStr) => {
-        mealsByDate.push({ dateStr, meals });
-      });
-
-      const groupData = {
-        id: idx >= 0 ? currentGroups[idx].id : `group-custom-${Date.now()}`,
-        name,
-        tag,
-        tables,
-        checked: true,
-        isStatusBadge: false,
-        mealsByDate
+        return btn;
       };
 
-      if (idx >= 0) {
-        currentGroups[idx] = groupData;
-      } else {
-        currentGroups.push(groupData);
+      yearPills.appendChild(createPill('全部週表', 'ALL'));
+      Array.from(yearSet).sort().forEach(yr => {
+        yearPills.appendChild(createPill(`${yr}年`, yr));
+      });
+
+      filterSheetsList();
+    }
+
+    function filterSheetsList() {
+      const showAll = document.getElementById('showAllSheetsToggle').checked;
+      const search = document.getElementById('sheetSearchInput').value.trim().toLowerCase();
+      const container = document.getElementById('sheetListContainer');
+      container.innerHTML = '';
+
+      let count = 0;
+      workbookSheets.forEach((s) => {
+        // Filter by Weekly rules unless showAll
+        if (!showAll && !isWeeklySheet(s.name)) return;
+
+        // Filter by Year
+        if (selectedYearFilter !== 'ALL' && !s.name.includes(selectedYearFilter)) return;
+
+        // Filter by Search
+        if (search && !s.name.toLowerCase().includes(search)) return;
+
+        count++;
+        const isChecked = activeSheetNames.has(s.name);
+        const item = document.createElement('label');
+        item.className = 'flex items-center gap-2 p-1 hover:bg-slate-100 rounded cursor-pointer select-none';
+        item.innerHTML = `
+          <input type="checkbox" class="sheet-checkbox text-amber-600 rounded" value="${escapeHtml(s.name)}" ${isChecked ? 'checked' : ''} onchange="toggleSheetSelection('${escapeJsStr(s.name)}', this.checked)">
+          <span class="${isChecked ? 'font-bold text-amber-900' : 'text-slate-700'}">${escapeHtml(s.name)}</span>
+        `;
+        container.appendChild(item);
+      });
+
+      document.getElementById('sheetCountBadge').textContent = `${count} 個工作表`;
+    }
+
+    function selectAllSheets(check) {
+      const checkboxes = document.querySelectorAll('.sheet-checkbox');
+      checkboxes.forEach(cb => {
+        cb.checked = check;
+        if (check) activeSheetNames.add(cb.value);
+        else activeSheetNames.delete(cb.value);
+      });
+      processSelectedSheets();
+    }
+
+    function toggleSheetSelection(sheetName, checked) {
+      if (checked) activeSheetNames.add(sheetName);
+      else activeSheetNames.delete(sheetName);
+      processSelectedSheets();
+    }
+
+    function autoSelectDefaultSheet() {
+      // Find 2026 weekly sheets or first weekly sheet
+      let target = workbookSheets.find(s => s.name.includes('2026') && isWeeklySheet(s.name));
+      if (!target) target = workbookSheets.find(s => isWeeklySheet(s.name));
+      if (!target && workbookSheets.length > 0) target = workbookSheets[0];
+
+      if (target) {
+        activeSheetNames.add(target.name);
+        filterSheetsList();
+        processSelectedSheets();
+      }
+    }
+
+    /* ==========================================================================
+       LAZY SHEET PARSING & MEAL DATA EXTRACTION
+       ========================================================================== */
+
+    async function processSelectedSheets() {
+      if (activeSheetNames.size === 0) {
+        aggregatedGroups = [];
+        renderGroupList();
+        renderPrintCards();
+        return;
       }
 
-      closeGroupModal();
+      updateStatus(`⏳ 正在解析已選定的 ${activeSheetNames.size} 個週表...`);
+
+      const allExtractedRows = [];
+      for (let name of activeSheetNames) {
+        let parsedRows = parsedSheetCache.get(name);
+        if (!parsedRows) {
+          const sheetInfo = workbookSheets.find(s => s.name === name);
+          if (sheetInfo) {
+            parsedRows = await parseWorksheetData(sheetInfo.targetPath);
+            parsedSheetCache.set(name, parsedRows);
+          }
+        }
+        if (parsedRows) {
+          allExtractedRows.push(...parsedRows);
+        }
+      }
+
+      // Aggregate and process groups
+      aggregateGroupMeals(allExtractedRows);
+      updateStatus(`✅ 成功載入膳食數據（已合併 ${aggregatedGroups.length} 個團體資料）`, 'success');
       renderGroupList();
-      renderPrintPreview();
+      renderPrintCards();
     }
 
-    /**
-     * CUSTOM DIALOG MODAL (NO ALERT/CONFIRM)
-     */
-    let dialogCallback = null;
+    // Convert Excel column letters like C, H, N to 1-based index (A=1, B=2, C=3, H=8, N=14...)
+    function colToIdx(colStr) {
+      let idx = 0;
+      for (let i = 0; i < colStr.length; i++) {
+        idx = idx * 26 + (colStr.charCodeAt(i) - 64);
+      }
+      return idx;
+    }
 
-    function showCustomDialog(title, message, isConfirm = false, onConfirm = null) {
-      document.getElementById('dialogTitle').innerText = title;
-      document.getElementById('dialogMessage').innerText = message;
-      dialogCallback = onConfirm;
+    // Helper: Excel Serial Date to JS Date
+    function excelSerialToDate(serial) {
+      const num = parseFloat(serial);
+      if (isNaN(num) || num <= 0) return null;
+      const baseEpoch = is1904DateSystem ? new Date(1904, 0, 1) : new Date(1899, 11, 30);
+      const days = Math.floor(num);
+      const millis = Math.round((num - days) * 86400 * 1000);
+      const targetDate = new Date(baseEpoch.getTime() + days * 86400000 + millis);
+      return targetDate;
+    }
 
-      const btnContainer = document.getElementById('dialogButtons');
-      if (isConfirm) {
-        btnContainer.innerHTML = `
-          <button onclick="closeCustomDialog()" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg">取消</button>
-          <button onclick="confirmCustomDialog()" class="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-sm">確定刪除</button>
-        `;
-      } else {
-        btnContainer.innerHTML = `
-          <button onclick="closeCustomDialog()" class="px-5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-sm">確定</button>
-        `;
+    function formatDateDM(date) {
+      if (!date || isNaN(date.getTime())) return '';
+      return `${date.getDate()}/${date.getMonth() + 1}`;
+    }
+
+    // Parse single XML Worksheet (Lazy loading, skipping rows > 35)
+    async function parseWorksheetData(targetPath) {
+      const xmlStr = await zipEngine.readText(targetPath);
+      if (!xmlStr) return [];
+
+      const domParser = new DOMParser();
+      const sheetDoc = domParser.parseFromString(xmlStr, 'application/xml');
+      const rowEls = sheetDoc.getElementsByTagNameNS('*', 'row');
+
+      // Map rows by row number
+      const rowsMap = new Map();
+      for (let i = 0; i < rowEls.length; i++) {
+        const row = rowEls[i];
+        const rNum = parseInt(row.getAttribute('r'), 10);
+        if (rNum > 35) continue; // Skip unnecessary bottom rows
+
+        const cellsMap = new Map();
+        const cEls = row.getElementsByTagNameNS('*', 'c');
+        for (let j = 0; j < cEls.length; j++) {
+          const c = cEls[j];
+          const ref = c.getAttribute('r'); // e.g. C8
+          const colStr = ref.replace(/[0-9]/g, '');
+          const colIdx = colToIdx(colStr);
+          const t = c.getAttribute('t');
+          const vEl = c.getElementsByTagNameNS('*', 'v')[0];
+          let val = vEl ? vEl.textContent.trim() : '';
+
+          if (t === 's' && val !== '') {
+            const idx = parseInt(val, 10);
+            val = sharedStrings[idx] !== undefined ? sharedStrings[idx] : val;
+          } else if (t === 'inlineStr') {
+            const isEl = c.getElementsByTagNameNS('*', 'is')[0];
+            val = isEl ? isEl.textContent.trim() : '';
+          }
+          cellsMap.set(colIdx, val);
+        }
+        rowsMap.set(rNum, cellsMap);
       }
 
-      document.getElementById('customDialogModal').classList.remove('hidden');
+      // Step 1: Detect Start Date from Row 1 D1 (col 4)
+      let startDateSerial = null;
+      const row1 = rowsMap.get(1);
+      if (row1 && row1.has(4)) {
+        const d1Val = row1.get(4);
+        if (!isNaN(parseFloat(d1Val)) && parseFloat(d1Val) > 35000) {
+          startDateSerial = parseFloat(d1Val);
+        }
+      }
+
+      // Step 2: Detect Dates from Row 8 across columns: H(8), N(14), T(20), Z(26), AF(32), AL(38), AR(44)
+      const dateColIndices = [8, 14, 20, 26, 32, 38, 44];
+      const dayDates = []; // Array of 7 JS Date strings (D/M)
+
+      const row8 = rowsMap.get(8);
+      for (let dIdx = 0; dIdx < 7; dIdx++) {
+        const cIdx = dateColIndices[dIdx];
+        let dVal = row8 ? row8.get(cIdx) : null;
+        let dateObj = null;
+
+        if (dVal && !isNaN(parseFloat(dVal)) && parseFloat(dVal) > 35000) {
+          dateObj = excelSerialToDate(parseFloat(dVal));
+        } else if (startDateSerial) {
+          dateObj = excelSerialToDate(startDateSerial + dIdx);
+        }
+
+        dayDates.push(dateObj ? formatDateDM(dateObj) : `Day${dIdx+1}`);
+      }
+
+      // Step 3: Scan Group Rows 11 to 32
+      const extractedRows = [];
+      for (let r = 11; r <= 32; r++) {
+        const row = rowsMap.get(r);
+        if (!row) continue;
+
+        const groupNameRaw = row.get(3); // Col C (3)
+        if (!groupNameRaw || groupNameRaw.trim() === '') continue;
+
+        // Stop if hit total count header
+        if (groupNameRaw.includes('每餐總枱數') || groupNameRaw.includes('總枱數')) break;
+
+        const mealEntries = [];
+        // Loop 7 days
+        for (let dIdx = 0; dIdx < 7; dIdx++) {
+          const baseCol = dateColIndices[dIdx];
+          const dateStr = dayDates[dIdx];
+
+          const bVal = row.get(baseCol);     // 早 (Breakfast)
+          const lVal = row.get(baseCol + 2); // 午 (Lunch)
+          const dVal = row.get(baseCol + 4); // 晚 (Dinner)
+
+          mealEntries.push({ dateStr, dayIndex: dIdx, bVal, lVal, dVal });
+        }
+
+        extractedRows.push({
+          rawName: groupNameRaw.trim(),
+          meals: mealEntries
+        });
+      }
+
+      return extractedRows;
     }
 
-    function closeCustomDialog() {
-      document.getElementById('customDialogModal').classList.add('hidden');
-      dialogCallback = null;
+    /* Clean Tag Regex: strip pencil, pan, mark, pending, tentative inside parens while preserving (A), (B), etc. */
+    function cleanGroupName(name) {
+      if (!name) return '';
+      let cleaned = name;
+      const cleanRegex = /\s*[\(（]\s*(?:pencil|pencal|pan|mark|pending|tentative|\s|[\/\+\,])+\s*[\)）]/gi;
+      cleaned = cleaned.replace(cleanRegex, '');
+      return cleaned.trim();
     }
 
-    function confirmCustomDialog() {
-      if (dialogCallback) dialogCallback();
-      closeCustomDialog();
+    /* Aggregate Group Data & Parse Meal Cells */
+    function aggregateGroupMeals(rawRows) {
+      const doCleanTags = document.getElementById('cleanTagsToggle').checked;
+      const groupMap = new Map();
+
+      rawRows.forEach(item => {
+        const displayName = doCleanTags ? cleanGroupName(item.rawName) : item.rawName.trim();
+        
+        // Detect Cancelled / HOLD status
+        const isCancelled = /取消|HOLD|CX|不訂膳|未訂膳/i.test(item.rawName);
+
+        if (!groupMap.has(displayName)) {
+          groupMap.set(displayName, {
+            id: 'grp_' + Math.random().toString(36).substring(2, 9),
+            name: displayName,
+            originalName: item.rawName,
+            isCancelled: isCancelled,
+            selected: !isCancelled, // unchecked by default if cancelled
+            daysMap: new Map() // dateStr -> { b: [], l: [], d: [], bbq: [] }
+          });
+        }
+
+        const groupObj = groupMap.get(displayName);
+
+        item.meals.forEach(m => {
+          if (!groupObj.daysMap.has(m.dateStr)) {
+            groupObj.daysMap.set(m.dateStr, { dateStr: m.dateStr, b: [], l: [], d: [], bbq: [] });
+          }
+          const dayData = groupObj.daysMap.get(m.dateStr);
+
+          parseMealCell(m.bVal, '早', dayData);
+          parseMealCell(m.lVal, '午', dayData);
+          parseMealCell(m.dVal, '晚', dayData);
+        });
+      });
+
+      aggregatedGroups = Array.from(groupMap.values());
     }
 
+    function reprocessParsedData() {
+      processSelectedSheets();
+    }
+
+    /* Cell Content Parser for BBQ, Western, Veg, Tables */
+    function parseMealCell(cellVal, mealType, dayData) {
+      if (!cellVal) return;
+      const str = String(cellVal).trim();
+      if (!str || str === '0' || str === 'X' || str === 'x' || str.includes('2組原烹') || str.includes('人數有變')) return;
+
+      const isBBQ = /BBQ/i.test(str);
+      const isWestern = /西/i.test(str);
+
+      // Check Vegetarian table split
+      let vegTables = 0;
+      if (/半枱素|半枱西素|0\.5素/i.test(str)) vegTables = 0.5;
+      else if (/1枱素|1枱西素/i.test(str)) vegTables = 1.0;
+
+      // Extract numbers
+      if (isBBQ) {
+        let tables = 0;
+        const tableMatch = str.match(/([0-9\.]+)\s*(?:枱|份)/);
+        if (tableMatch) {
+          tables = parseFloat(tableMatch[1]);
+        } else {
+          const numMatch = str.match(/([0-9\.]+)/);
+          if (numMatch) {
+            const rawNum = parseFloat(numMatch[1]);
+            tables = Math.ceil((rawNum / 8) * 2) / 2;
+          }
+        }
+        if (tables > 0) {
+          dayData.bbq.push({ tables, isWestern, mealType });
+        }
+        return;
+      }
+
+      // Normal Meals
+      let mainTables = 0;
+      const numMatch = str.match(/([0-9\.]+)/);
+      if (numMatch) {
+        mainTables = parseFloat(numMatch[1]);
+      }
+
+      if (vegTables > 0 && mainTables >= vegTables) {
+        mainTables = mainTables - vegTables;
+        // Add veg entry to day
+        dayData[mealTypeKey(mealType)].push({ tables: vegTables, isWestern, isVeg: true });
+      }
+
+      if (mainTables > 0) {
+        dayData[mealTypeKey(mealType)].push({ tables: mainTables, isWestern, isVeg: false });
+      }
+    }
+
+    function mealTypeKey(type) {
+      if (type === '早') return 'b';
+      if (type === '午') return 'l';
+      return 'd';
+    }
+
+    /* ==========================================================================
+       CARD GENERATION & SAME-DAY PHRASE MERGING
+       ========================================================================== */
+
+    function generateCardsForGroup(group) {
+      if (!group.selected) return [];
+
+      // Collect dates in order
+      const dateList = Array.from(group.daysMap.values());
+      if (dateList.length === 0) return [];
+
+      // Calculate Maximum Tables across all meals for this group to detect half-table splitting
+      let maxTables = 0;
+      let hasVeg = false;
+
+      const groupNormalSchedule = []; // { dateStr, lines: [] }
+      const groupVegSchedule = [];
+
+      dateList.forEach(d => {
+        const dateStr = d.dateStr;
+        
+        // Process Normal Meals for this date
+        const normalLines = formatSameDayMeals(d.b, d.l, d.d, d.bbq, false);
+        if (normalLines.lines.length > 0) {
+          groupNormalSchedule.push({ dateStr, lines: normalLines.lines });
+          if (normalLines.maxT > maxTables) maxTables = normalLines.maxT;
+        }
+
+        // Process Veg Meals for this date
+        const vegLines = formatSameDayMeals(d.b, d.l, d.d, d.bbq, true);
+        if (vegLines.lines.length > 0) {
+          hasVeg = true;
+          groupVegSchedule.push({ dateStr, lines: vegLines.lines });
+        }
+      });
+
+      const cards = [];
+
+      // Check if maxTables ends with .5 (e.g. 2.5, 5.5, 0.5)
+      const hasHalfTable = (maxTables % 1 !== 0);
+      const fullCount = Math.floor(maxTables);
+
+      // 1. Generate Normal Cards
+      if (maxTables > 0) {
+        if (hasHalfTable) {
+          // Generate fullCount full cards
+          for (let i = 0; i < fullCount; i++) {
+            cards.push({
+              title: group.name,
+              isHalf: false,
+              subtitle: '',
+              schedule: groupNormalSchedule,
+              footer: '（限最多 8 人一枱）'
+            });
+          }
+          // Generate 1 Half-Table Card
+          cards.push({
+            title: group.name,
+            isHalf: true,
+            subtitle: '',
+            schedule: groupNormalSchedule,
+            footer: '（限最多 4 人一枱）'
+          });
+        } else {
+          // All full cards
+          const count = fullCount > 0 ? fullCount : 1;
+          for (let i = 0; i < count; i++) {
+            cards.push({
+              title: group.name,
+              isHalf: false,
+              subtitle: '',
+              schedule: groupNormalSchedule,
+              footer: '（限最多 8 人一枱）'
+            });
+          }
+        }
+      }
+
+      // 2. Generate Vegetarian Cards if present
+      if (hasVeg) {
+        cards.push({
+          title: `${group.name} (素)`,
+          isHalf: false,
+          subtitle: 'Vegetables',
+          schedule: groupVegSchedule,
+          footer: '（限最多 8 人一枱）'
+        });
+      }
+
+      return cards;
+    }
+
+    /* Format Same Day Meals into HK Natural Phrasing */
+    function formatSameDayMeals(bList, lList, dList, bbqList, vegOnly) {
+      const lines = [];
+      let maxT = 0;
+
+      const getTables = (list) => {
+        const filtered = list.filter(x => x.isVeg === vegOnly);
+        if (filtered.length === 0) return 0;
+        return filtered[0].tables;
+      };
+
+      const bT = getTables(bList);
+      const lT = getTables(lList);
+      const dT = getTables(dList);
+
+      [bT, lT, dT].forEach(t => { if (t > maxT) maxT = t; });
+
+      // Grouping logic for b, l, d sharing same table counts
+      if (bT > 0 && bT === lT && lT === dT) {
+        lines.push(`早、午、晚餐 ${bT} 枱`);
+      } else if (bT > 0 && bT === lT && dT === 0) {
+        lines.push(`早、午餐 ${bT} 枱`);
+      } else if (bT > 0 && bT === dT && lT === 0) {
+        lines.push(`早、晚餐 ${bT} 枱`);
+      } else if (lT > 0 && lT === dT && bT === 0) {
+        lines.push(`午、晚餐 ${lT} 枱`);
+      } else {
+        if (bT > 0) lines.push(`早餐 ${bT} 枱`);
+        if (lT > 0) lines.push(`午餐 ${lT} 枱`);
+        if (dT > 0) lines.push(`晚餐 ${dT} 枱`);
+      }
+
+      // BBQ lines
+      if (!vegOnly && bbqList && bbqList.length > 0) {
+        bbqList.forEach(item => {
+          lines.push(`BBQ ${item.tables} 枱`);
+          if (item.tables > maxT) maxT = item.tables;
+        });
+      }
+
+      return { lines, maxT };
+    }
+
+    /* ==========================================================================
+       DOM RENDERING: GROUP CHECKLIST & A4 CARDS
+       ========================================================================== */
+
+    function renderGroupList() {
+      const container = document.getElementById('groupListContainer');
+      const search = document.getElementById('groupSearchInput').value.trim().toLowerCase();
+      container.innerHTML = '';
+
+      if (aggregatedGroups.length === 0) {
+        container.innerHTML = `<div class="text-slate-400 text-xs text-center py-4">無團體資料</div>`;
+        return;
+      }
+
+      aggregatedGroups.forEach(grp => {
+        if (search && !grp.name.toLowerCase().includes(search)) return;
+
+        const item = document.createElement('div');
+        item.className = `flex items-center justify-between p-2 rounded border text-xs transition ${grp.isCancelled ? 'bg-red-50 border-red-200' : 'bg-white border-slate-200 hover:bg-slate-50'}`;
+
+        item.innerHTML = `
+          <label class="flex items-center gap-2 flex-1 cursor-pointer select-none">
+            <input type="checkbox" class="rounded text-amber-600" ${grp.selected ? 'checked' : ''} onchange="toggleGroupSelection('${grp.id}', this.checked)">
+            <span class="font-medium ${grp.isCancelled ? 'text-red-700 line-through' : 'text-slate-800'}">${escapeHtml(grp.name)}</span>
+          </label>
+          ${grp.isCancelled ? '<span class="px-1.5 py-0.5 bg-red-100 text-red-800 rounded text-[10px] font-bold">已取消/HOLD</span>' : ''}
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function toggleGroupSelection(id, checked) {
+      const grp = aggregatedGroups.find(g => g.id === id);
+      if (grp) {
+        grp.selected = checked;
+        renderPrintCards();
+      }
+    }
+
+    function selectAllGroups(check) {
+      aggregatedGroups.forEach(g => { g.selected = check; });
+      renderGroupList();
+      renderPrintCards();
+    }
+
+    /* Render A4 Pages Grid */
+    function renderPrintCards() {
+      const container = document.getElementById('printContainer');
+      container.innerHTML = '';
+
+      // Collect all cards for all selected groups
+      let allCards = [];
+      aggregatedGroups.forEach(grp => {
+        const cards = generateCardsForGroup(grp);
+        allCards.push(...cards);
+      });
+
+      if (allCards.length === 0) {
+        container.innerHTML = `
+          <div class="a4-page bg-white shadow-xl rounded p-12 text-center text-slate-400 flex flex-col items-center justify-center font-sans" style="width:210mm; height:297mm;">
+            <span class="text-5xl mb-4">📭</span>
+            <p class="text-base font-bold text-slate-600">暫無已勾選的團體分枱卡</p>
+            <p class="text-xs text-slate-400 mt-1">請在上傳 Excel 後，於左側勾選團體即可自動預覽生成！</p>
+          </div>
+        `;
+        fitA4Scale();
+        return;
+      }
+
+      // Determine Cards per page based on grid layout
+      let cardsPerPage = 4;
+      let gridCols = 2;
+      let gridRows = 2;
+      let cardHeight = '140mm';
+
+      if (currentConfig.grid === '2x3') {
+        cardsPerPage = 6;
+        gridRows = 3;
+        cardHeight = '92mm';
+      } else if (currentConfig.grid === '2x4') {
+        cardsPerPage = 8;
+        gridRows = 4;
+        cardHeight = '68mm';
+      }
+
+      // Partition cards into pages
+      const pages = [];
+      for (let i = 0; i < allCards.length; i += cardsPerPage) {
+        pages.push(allCards.slice(i, i + cardsPerPage));
+      }
+
+      pages.forEach((pageCards, pageIdx) => {
+        const pageEl = document.createElement('div');
+        pageEl.className = 'a4-page bg-white shadow-xl relative font-kai overflow-hidden';
+        pageEl.style.width = '210mm';
+        pageEl.style.height = '297mm';
+        pageEl.style.padding = '8mm';
+        pageEl.style.boxSizing = 'border-box';
+
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'w-full h-full grid grid-cols-2 gap-0 border-collapse';
+        gridContainer.style.gridTemplateRows = `repeat(${gridRows}, 1fr)`;
+
+        pageCards.forEach(card => {
+          const cardEl = document.createElement('div');
+          cardEl.className = `table-card ${currentConfig.borderClass}`;
+          cardEl.style.padding = '6mm 5mm';
+
+          // Title pt shrink check if > 11 chars
+          let titleSizePt = currentConfig.titlePt;
+          if (card.title.length > 11) {
+            titleSizePt = Math.max(16, currentConfig.titlePt * 0.82);
+          }
+
+          // Build Title Block
+          let titleBlockHtml = `<div class="card-title font-kai" style="font-size:${titleSizePt}pt; font-weight:400; line-height:1.25;">${escapeHtml(card.title)}</div>`;
+          if (card.isHalf) {
+            titleBlockHtml += `<div class="card-half-badge font-kai" style="font-size:${titleSizePt * 1.12}pt; font-weight:400; margin-top:0.12em;">（半圍）</div>`;
+          }
+          if (card.subtitle) {
+            titleBlockHtml += `<div class="card-subtitle font-kai" style="font-size:${titleSizePt * 0.88}pt; font-weight:400;">${escapeHtml(card.subtitle)}</div>`;
+          }
+
+          // Build Schedule Block
+          let scheduleHtml = `<div class="w-full flex flex-col justify-center gap-3">`;
+          card.schedule.forEach(day => {
+            scheduleHtml += `
+              <div class="day-block">
+                <div class="card-date font-kai font-bold" style="font-size:${currentConfig.bodyPt * 1.25}pt; line-height:1.2;">${escapeHtml(day.dateStr)}</div>
+                ${day.lines.map(line => `<div class="card-meal font-kai" style="font-size:${currentConfig.bodyPt}pt; line-height:1.3; margin-top:0.1em;">${escapeHtml(line)}</div>`).join('')}
+              </div>
+            `;
+          });
+          scheduleHtml += `</div>`;
+
+          // Build Footer Block
+          const footerHtml = `<div class="card-footer font-kai" style="font-size:${currentConfig.bodyPt}pt; font-weight:400;">${escapeHtml(card.footer)}</div>`;
+
+          cardEl.innerHTML = titleBlockHtml + scheduleHtml + footerHtml;
+          gridContainer.appendChild(cardEl);
+        });
+
+        // Fill remaining empty cells in grid if last page
+        const remaining = cardsPerPage - pageCards.length;
+        for (let r = 0; r < remaining; r++) {
+          const emptyCell = document.createElement('div');
+          emptyCell.className = `table-card ${currentConfig.borderClass} opacity-0`;
+          gridContainer.appendChild(emptyCell);
+        }
+
+        pageEl.appendChild(gridContainer);
+        container.appendChild(pageEl);
+      });
+
+      fitA4Scale();
+    }
+
+    /* Auto Scale Preview Viewport to Fit Screen */
+    function fitA4Scale() {
+      const viewport = document.getElementById('previewViewport');
+      const wrapper = document.getElementById('a4ScaleWrapper');
+      if (!viewport || !wrapper) return;
+
+      const viewportWidth = viewport.clientWidth - 48; // padding
+      const a4WidthPx = 794; // approx px for 210mm @ 96dpi
+
+      if (viewportWidth < a4WidthPx) {
+        const scale = Math.max(0.35, viewportWidth / a4WidthPx);
+        wrapper.style.transform = `scale(${scale})`;
+        wrapper.style.marginBottom = `-${(1 - scale) * 1123}px`;
+      } else {
+        wrapper.style.transform = 'scale(1)';
+        wrapper.style.marginBottom = '0px';
+      }
+    }
+
+    /* ==========================================================================
+       TOOLBAR INTERACTION LOGIC
+       ========================================================================== */
+
+    function updateGridOption(val) {
+      currentConfig.grid = val;
+      renderPrintCards();
+    }
+
+    function updateBorderOption(val) {
+      currentConfig.borderClass = val;
+      renderPrintCards();
+    }
+
+    function adjustFontSize(type, delta) {
+      if (type === 'titlePt') {
+        currentConfig.titlePt = Math.max(14, Math.min(42, currentConfig.titlePt + delta));
+        document.getElementById('titlePtVal').textContent = `${currentConfig.titlePt}pt`;
+      } else if (type === 'bodyPt') {
+        currentConfig.bodyPt = Math.max(12, Math.min(34, currentConfig.bodyPt + delta));
+        document.getElementById('bodyPtVal').textContent = `${currentConfig.bodyPt}pt`;
+      }
+      renderPrintCards();
+    }
+
+    function resetFontSizes() {
+      currentConfig.titlePt = 25;
+      currentConfig.bodyPt = 20;
+      document.getElementById('titlePtVal').textContent = '25pt';
+      document.getElementById('bodyPtVal').textContent = '20pt';
+      renderPrintCards();
+    }
+
+    /* ==========================================================================
+       DEMO DATA PRELOADER
+       ========================================================================== */
+
+    function loadDemoData() {
+      activeSheetNames.clear();
+      parsedSheetCache.clear();
+
+      aggregatedGroups = [
+        {
+          id: 'demo_1',
+          name: '中國香港賽艇協會(A)',
+          originalName: '中國香港賽艇協會(A)',
+          isCancelled: false,
+          selected: true,
+          daysMap: new Map([
+            ['18/12', { dateStr: '18/12', b: [], l: [], d: [{ tables: 5, isWestern: false, isVeg: false }], bbq: [] }],
+            ['19/12', { dateStr: '19/12', b: [{ tables: 5, isWestern: false, isVeg: false }], l: [{ tables: 5, isWestern: false, isVeg: false }], d: [{ tables: 5, isWestern: false, isVeg: false }], bbq: [] }],
+            ['20/12', { dateStr: '20/12', b: [{ tables: 5, isWestern: false, isVeg: false }], l: [{ tables: 5, isWestern: false, isVeg: false }], d: [], bbq: [] }]
+          ])
+        },
+        {
+          id: 'demo_2',
+          name: '中國香港賽艇協會(B)',
+          originalName: '中國香港賽艇協會(B)',
+          isCancelled: false,
+          selected: true,
+          daysMap: new Map([
+            ['18/12', { dateStr: '18/12', b: [], l: [], d: [{ tables: 2.5, isWestern: false, isVeg: false }], bbq: [] }],
+            ['19/12', { dateStr: '19/12', b: [{ tables: 2.5, isWestern: false, isVeg: false }], l: [{ tables: 2.5, isWestern: false, isVeg: false }], d: [{ tables: 2.5, isWestern: false, isVeg: false }], bbq: [] }],
+            ['20/12', { dateStr: '20/12', b: [{ tables: 2.5, isWestern: false, isVeg: false }], l: [{ tables: 2.5, isWestern: false, isVeg: false }], d: [], bbq: [] }]
+          ])
+        }
+      ];
+
+      updateStatus(`🔄 已載入示範數據 (中國香港賽艇協會 5 枱 及 2.5 枱半圍範例)`, 'success');
+      renderGroupList();
+      renderPrintCards();
+    }
+
+    /* ==========================================================================
+       PRINT & EXPORT ENGINES (TRIPLE-LAYER PROTECTION)
+       ========================================================================== */
+
+    function triggerPrint() {
+      let printTriggered = false;
+      const beforePrintHandler = () => { printTriggered = true; };
+      window.addEventListener('beforeprint', beforePrintHandler);
+
+      try {
+        window.print();
+      } catch (e) {
+        console.warn('window.print() blocked:', e);
+      }
+
+      setTimeout(() => {
+        window.removeEventListener('beforeprint', beforePrintHandler);
+        if (!printTriggered) {
+          // Open fallback modal if print window didn't open
+          document.getElementById('printModal').classList.remove('hidden');
+        }
+      }, 450);
+    }
+
+    function closePrintModal() {
+      document.getElementById('printModal').classList.add('hidden');
+    }
+
+    function generateStandalonePrintHtml() {
+      const printContent = document.getElementById('printContainer').innerHTML;
+      return `<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<title>營地分枱紙列印檔</title>
+<style>
+  body { margin: 0; padding: 0; background: #fff; font-family: 'DFKai-SB', '標楷體', 'BiauKai', 'Kaiti TC', 'STKaiti', 'KaiTi', serif; }
+  .a4-page { width: 210mm; height: 297mm; padding: 8mm; box-sizing: border-box; page-break-after: always; break-after: page; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; width: 100%; height: 100%; border-collapse: collapse; }
+  .table-card { color: #000; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center; text-align: center; background: #fff; word-break: break-word; }
+  .card-border-solid { border: 1px solid #000; }
+  .card-border-dashed { border: 1px dashed #000; }
+  .card-border-none { border: 1px solid transparent; }
+  @media print {
+    @page { size: A4 portrait; margin: 0; }
+    body { margin: 0; }
+    .a4-page { page-break-after: always !important; }
+  }
+</style>
+</head>
+<body>
+${printContent}
+<script>
+  window.onload = function() { window.print(); };
+<\/script>
+</body>
+</html>`;
+    }
+
+    function printViaBlobWindow() {
+      const html = generateStandalonePrintHtml();
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      closePrintModal();
+    }
+
+    function downloadHtmlFile() {
+      const html = generateStandalonePrintHtml();
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `營地分枱紙_${new Date().toISOString().slice(0,10)}.html`;
+      a.click();
+      closePrintModal();
+    }
+
+    function exportWordDoc() {
+      const printContent = document.getElementById('printContainer').innerHTML;
+      const wordHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset='utf-8'>
+<title>營地分枱紙</title>
+<!--[if gte mso 9]>
+<xml>
+ <w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+  <w:DoNotOptimizeForCustomXSL/>
+ </w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+  @page { size: 210mm 297mm; margin: 8mm; }
+  body { font-family: 'DFKai-SB', '標楷體', serif; }
+  .a4-page { page-break-after: always; }
+  .table-card { border: 1pt solid black; text-align: center; padding: 10pt; }
+</style>
+</head>
+<body>
+${printContent}
+</body>
+</html>`;
+
+      const blob = new Blob(['\ufeff' + wordHtml], { type: 'application/msword' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `營地分枱紙_${new Date().toISOString().slice(0,10)}.doc`;
+      a.click();
+      closePrintModal();
+    }
+
+    /* Helper Utilities */
     function escapeHtml(str) {
       if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&rawgt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
+    function escapeJsStr(str) {
+      if (!str) return '';
+      return String(str).replace(/'/g, "\\'");
+    }
+
   </script>
 </body>
 </html>
