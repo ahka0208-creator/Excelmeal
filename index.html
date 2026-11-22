@@ -4,1403 +4,1532 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>營地分枱紙自動生成器 (Excel 膳食表直出 PDF 版)</title>
-  <!-- Tailwind CSS -->
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- SheetJS for Excel Parsing -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.full.min.js"></script>
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
   <style>
-    /* 核心標楷體字型定義 (優雅還原實物列印效果) */
+    /* 標楷體字型 Stack */
     .font-kai {
-      font-family: 'DFKai-SB', 'BiauKai', '標楷體', 'KaiTi', 'STKaiti', 'TW-Kai', serif;
+      font-family: 'DFKai-SB', 'BiauKai', 'Kaiti TC', 'STKaiti', 'KaiTi', '標楷體', serif;
     }
-
-    /* 頁面與卡片動態 CSS 變數 */
+    
+    /* Live Preview Screen Styles */
     :root {
       --card-scale: 1;
-      --card-border-style: 0.5pt solid #111111;
     }
 
-    /* 螢幕預覽時的 A4 紙張視覺效果 */
+    /* Print Paper Outer Wrapper */
     .a4-page {
       width: 210mm;
-      height: 297mm;
+      min-height: 297mm;
+      padding: 8.5mm 7mm;
+      margin: 0 auto 20px auto;
       background: white;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-      margin: 0 auto 2rem auto;
       box-sizing: border-box;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
       page-break-after: always;
-      overflow: hidden;
+      break-after: page;
+      display: grid;
     }
 
-    /* 4格模式 (2x2): 每張 98mm x 140mm, A4 居中, 邊距 Top/Bottom 8.5mm, Left/Right 7mm */
-    .grid-layout-4 {
-      display: grid;
+    /* Grid layout variations */
+    .grid-4 {
       grid-template-columns: repeat(2, 98mm);
       grid-template-rows: repeat(2, 140mm);
-      gap: 0;
-      width: 196mm;
-      height: 280mm;
-      margin: 8.5mm 7mm;
+      gap: 0mm;
+      justify-content: center;
+      align-content: center;
     }
-
-    /* 6格模式 (2x3): 每張 98mm x 90mm */
-    .grid-layout-6 {
-      display: grid;
+    .grid-6 {
       grid-template-columns: repeat(2, 98mm);
-      grid-template-rows: repeat(3, 90mm);
-      gap: 0;
-      width: 196mm;
-      height: 270mm;
-      margin: 13.5mm 7mm;
+      grid-template-rows: repeat(3, 93mm);
+      gap: 0mm;
+      justify-content: center;
+      align-content: center;
     }
-
-    /* 8格模式 (2x4): 每張 98mm x 67.5mm */
-    .grid-layout-8 {
-      display: grid;
+    .grid-8 {
       grid-template-columns: repeat(2, 98mm);
-      grid-template-rows: repeat(4, 67.5mm);
-      gap: 0;
-      width: 196mm;
-      height: 270mm;
-      margin: 13.5mm 7mm;
+      grid-template-rows: repeat(4, 70mm);
+      gap: 0mm;
+      justify-content: center;
+      align-content: center;
     }
 
-    /* 分枱紙邊框樣式 */
-    .border-solid-thin {
-      border: 0.5pt solid #111111;
+    /* Individual Card Container */
+    .table-card {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 0.6em 0.8em;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      text-align: center;
+      background: #ffffff;
+      color: #000000;
+      line-height: 1.25;
+      position: relative;
+      overflow: hidden;
+      /* Base font scale applied dynamically */
+      font-size: calc(17pt * var(--card-scale));
     }
-    .border-dashed-thin {
-      border: 0.75pt dashed #666666;
+
+    /* Border Options */
+    .border-solid-card {
+      border: 0.5pt solid #222222;
     }
-    .border-none-style {
+    .border-dashed-card {
+      border: 0.5pt dashed #555555;
+    }
+    .border-none-card {
       border: 0.5pt solid transparent;
     }
 
-    /* 分枱卡片內部排版細節 - 嚴格按相片比例 */
-    .table-card {
-      box-sizing: border-box;
-      padding: 0.6rem 0.5rem;
+    /* Card Typography Elements with strict relative em sizes */
+    .card-header-box {
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      text-align: center;
-      font-size: calc(20pt * var(--card-scale));
-      color: #000000;
-      line-height: 1.25;
-      background: #ffffff;
-      overflow: hidden;
-      position: relative;
+      justify-content: center;
     }
-
-    /* 標題與標籤 */
     .card-title {
-      font-size: 1.25em;
-      font-weight: 400;
+      font-size: 1.28em;
+      font-weight: 700;
+      color: #000;
       letter-spacing: 0.02em;
       word-break: break-all;
-      line-height: 1.2;
+      line-height: 1.15;
     }
-    .card-title.shrink-sm { font-size: 1.1em; }
-    .card-title.shrink-xs { font-size: 0.95em; }
-    .card-title.shrink-xxs { font-size: 0.82em; }
-
-    /* 「（半圍）」超醒目排版 - 相片對比：比團體名更大、不加粗、置於標題正下方 */
+    .card-title-long {
+      font-size: 1.05em;
+    }
+    .card-tag {
+      font-size: 0.9em;
+      font-weight: 400;
+      color: #333;
+      margin-top: 0.1em;
+    }
     .card-half-badge {
       font-size: 1.55em;
       font-weight: 400;
-      line-height: 1.15;
-      margin-top: 0.1em;
-      margin-bottom: 0.15em;
+      color: #000;
+      margin-top: 0.05em;
+      margin-bottom: 0.05em;
       letter-spacing: 0.05em;
     }
 
-    .card-subtitle {
-      font-size: 1.1em;
-      font-weight: 400;
-      margin-top: 0.1em;
-    }
-
-    /* 日程排版區 */
-    .card-schedule {
+    .card-body-dates {
+      width: 100%;
       display: flex;
       flex-direction: column;
-      justify-content: center;
       align-items: center;
-      flex-grow: 1;
+      justify-content: center;
+      gap: 0.45em;
+      margin: auto 0;
+    }
+
+    .card-date-block {
       width: 100%;
-      padding: 0.3em 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-
-    .day-block {
-      margin-bottom: 0.65em;
-    }
-    .day-block:last-child {
-      margin-bottom: 0;
-    }
-    .tight-schedule .day-block {
-      margin-bottom: 0.35em;
-    }
-
-    /* 日期：加粗 */
-    .day-date {
-      font-size: 1.28em;
+    .card-date-title {
+      font-size: 1.38em;
       font-weight: 700;
+      color: #000;
+      line-height: 1.15;
+    }
+    .card-meal-line {
+      font-size: 1.08em;
+      font-weight: 400;
+      color: #000;
       line-height: 1.2;
+      margin-top: 0.05em;
     }
 
-    /* 膳食及枱數：常規不加粗 */
-    .day-meal {
-      font-size: 1em;
-      font-weight: 400;
-      line-height: 1.3;
-      letter-spacing: 0.03em;
-    }
-
-    /* 頁尾限制提示語 */
     .card-footer {
-      font-size: 1em;
+      font-size: 1.08em;
       font-weight: 400;
+      color: #000;
+      width: 100%;
       margin-top: 0.2em;
-      letter-spacing: 0.02em;
     }
 
-    /* 預覽縮放外殼 */
-    .preview-viewport {
-      transform-origin: top center;
-      transition: transform 0.2s ease;
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
 
-    /* 全螢幕列印樣式：隱藏所有 UI 控制項，精確輸出 A4 */
+    /* High DPI Printing Rules */
     @media print {
-      body {
-        background: white !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-      .no-print {
-        display: none !important;
-      }
-      .print-area {
-        padding: 0 !important;
-        margin: 0 !important;
-        background: transparent !important;
-        box-shadow: none !important;
-      }
-      .preview-viewport {
-        transform: none !important;
-      }
-      .a4-page {
-        margin: 0 !important;
-        box-shadow: none !important;
-        page-break-after: always;
-        width: 210mm !important;
-        height: 297mm !important;
-      }
       @page {
         size: A4 portrait;
         margin: 0;
       }
+      body {
+        background: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .a4-page {
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+      .preview-container {
+        padding: 0 !important;
+        background: none !important;
+        overflow: visible !important;
+      }
     }
   </style>
 </head>
-<body class="bg-slate-100 font-sans min-h-screen text-slate-800 flex flex-col">
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
 
-  <!-- 頂部導覽與列印控制列 (No Print) -->
-  <header class="no-print bg-slate-900 text-white sticky top-0 z-40 shadow-md">
+  <!-- Header Navbar (No Print) -->
+  <header class="no-print bg-slate-900 text-white shadow-md border-b border-slate-800 sticky top-0 z-30">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-      <!-- 標題與版本 -->
       <div class="flex items-center space-x-3">
-        <div class="bg-amber-500 text-slate-900 font-bold p-2 rounded-lg flex items-center justify-center">
+        <div class="bg-indigo-600 text-white p-2 rounded-lg shadow">
           <i class="fa-solid fa-utensils text-xl"></i>
         </div>
         <div>
-          <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
+          <h1 class="text-lg font-bold tracking-wide flex items-center gap-2">
             營地分枱紙自動生成器 
-            <span class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-mono">Excel 直出 PDF 版</span>
+            <span class="text-xs font-normal bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 px-2 py-0.5 rounded-full">原生 100% 零依賴 .xlsx 版</span>
           </h1>
-          <p class="text-xs text-slate-400">1:1 精確還原印刷版型 · 自動解析膳食表 · 智能分流半圍</p>
+          <p class="text-xs text-slate-400">Excel 膳食表直出 PDF / 支援多週合併與半圍自動拆分</p>
         </div>
       </div>
-
-      <!-- 快捷工具與列印按鈕 -->
-      <div class="flex items-center gap-3">
-        <div class="hidden md:flex items-center bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-sm">
-          <span class="text-slate-400 mr-2">已生成:</span>
-          <span id="counterCardCount" class="font-bold text-amber-400">0</span>
-          <span class="text-slate-400 mx-1">張卡 (</span>
-          <span id="counterPageCount" class="font-bold text-amber-400">0</span>
-          <span class="text-slate-400"> 頁 A4)</span>
-        </div>
-
-        <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-lg shadow flex items-center gap-2 transition active:scale-95">
-          <i class="fa-solid fa-print"></i>
-          <span>列印 / 存為 PDF</span>
+      <div class="flex items-center gap-2">
+        <button onclick="loadSampleData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-rotate-left text-indigo-400"></i> 載入示範數據
+        </button>
+        <button onclick="window.print()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-md transition flex items-center gap-1.5">
+          <i class="fa-solid fa-print"></i> 列印 / 另存 PDF
         </button>
       </div>
     </div>
   </header>
 
-  <!-- 次級全域控制條 (No Print) -->
-  <div class="no-print bg-white border-b border-slate-200 py-2.5 px-4 sticky top-[61px] z-30 shadow-sm">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 text-sm">
-      <!-- 排版格局設定 -->
-      <div class="flex flex-wrap items-center gap-4">
-        <div class="flex items-center gap-2">
-          <label class="font-medium text-slate-700">排版模式:</label>
-          <select id="selectGridMode" onchange="updateGridMode(this.value)" class="bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none">
-            <option value="4" selected>每頁 4 格 (2×2 原版 9.8×14cm)</option>
-            <option value="6">每頁 6 格 (2×3 緊密版)</option>
-            <option value="8">每頁 8 格 (2×4 迷你版)</option>
-          </select>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <label class="font-medium text-slate-700">邊框樣式:</label>
-          <select id="selectBorderStyle" onchange="updateBorderStyle(this.value)" class="bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none">
-            <option value="border-solid-thin" selected>幼實線 (0.5pt 預設)</option>
-            <option value="border-dashed-thin">剪裁虛線 (0.75pt)</option>
-            <option value="border-none-style">無框線</option>
-          </select>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <label class="font-medium text-slate-700">半圍排序:</label>
-          <select id="selectHalfSort" onchange="updateHalfSort(this.value)" class="bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none">
-            <option value="follow" selected>跟隨團體置尾 (預設)</option>
-            <option value="group_last">全部半圍集中排最尾</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- 文字縮放比例 -->
-      <div class="flex items-center gap-3">
-        <span class="font-medium text-slate-700 flex items-center gap-1">
-          <i class="fa-solid fa-text-height text-slate-400"></i> 字型整體縮放:
-        </span>
-        <input type="range" id="inputCardScale" min="0.60" max="1.45" step="0.01" value="1.00" oninput="updateCardScale(this.value)" class="w-28 accent-amber-500 cursor-pointer">
-        <span id="labelScaleValue" class="font-mono w-12 text-slate-600 font-bold">100%</span>
-        <button onclick="resetScale()" class="text-xs text-amber-600 hover:underline">重置</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 主內容分欄 (左側控制面板，右側 A4 實時預覽) -->
-  <main class="flex-grow flex flex-col lg:flex-row max-w-[1600px] w-full mx-auto p-4 gap-6">
+  <!-- Main Container -->
+  <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 flex flex-col lg:flex-row gap-5">
     
-    <!-- 左側面板：Excel 匯入與團體編輯 (No Print) -->
-    <aside class="no-print lg:w-[480px] xl:w-[520px] flex-shrink-0 flex flex-col gap-4">
-      
-      <!-- 分頁標籤 -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="flex border-b border-slate-200 bg-slate-50">
-          <button id="tabBtnExcel" onclick="switchTab('excel')" class="flex-1 py-3 px-4 font-bold text-center border-b-2 border-amber-500 text-amber-600 bg-white transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-file-excel"></i>
-            <span>1. Excel 匯入與設定</span>
-          </button>
-          <button id="tabBtnGroups" onclick="switchTab('groups')" class="flex-1 py-3 px-4 font-bold text-center border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-2">
-            <i class="fa-solid fa-list-check"></i>
-            <span>2. 團體清單與編輯</span>
-          </button>
+    <!-- Left Workspace Controls (No Print) -->
+    <aside class="no-print lg:w-[480px] xl:w-[520px] flex flex-col gap-4 shrink-0">
+
+      <!-- Upload Section -->
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 transition hover:shadow-md">
+        <h2 class="text-sm font-bold text-slate-800 mb-2 flex items-center justify-between">
+          <span><i class="fa-solid fa-file-excel text-emerald-600 mr-2"></i>上傳 Excel 膳食表 (.xlsx)</span>
+          <span id="parsingStatus" class="text-xs font-normal text-slate-400">離線純 JS 解析</span>
+        </h2>
+
+        <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-lg p-5 text-center hover:border-indigo-500 hover:bg-indigo-50/50 transition cursor-pointer relative bg-slate-50/50">
+          <input type="file" id="excelFileInput" accept=".xlsx,.xlsm,.xls" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onchange="handleFileUpload(event)">
+          <div class="space-y-2 pointer-events-none">
+            <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-1"></i>
+            <p class="text-xs font-semibold text-slate-700">點擊選擇檔案 或 將 Excel 拖曳至此</p>
+            <p class="text-[11px] text-slate-400">支援 `.xlsx` / `.xlsm`（包含 100+ 工作表之大型檔案）</p>
+          </div>
         </div>
 
-        <!-- 頁籤 1: Excel 匯入面板 -->
-        <div id="tabContentExcel" class="p-4 space-y-4">
-          <!-- 上傳拖拉區域 -->
-          <div id="dropzone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" onclick="document.getElementById('excelFileInput').click()" class="border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/50 hover:bg-amber-50 rounded-xl p-6 text-center cursor-pointer transition">
-            <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleFileSelect(event)">
-            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
-              <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
-            </div>
-            <p class="font-bold text-slate-800 mb-1">點擊上傳 或 將 Excel 膳食表拖放到此處</p>
-            <p class="text-xs text-slate-500">支援 .xlsx / .xls 格式 (包含週次工作表)</p>
+        <div id="errorAlert" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-start gap-2">
+          <i class="fa-solid fa-triangle-exclamation text-red-500 mt-0.5 shrink-0"></i>
+          <span id="errorMessage"></span>
+        </div>
+      </section>
+
+      <!-- Sheet Selector Section -->
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-table-cells text-indigo-600"></i> 選擇工作表 
+            <span id="sheetCountBadge" class="text-xs font-normal bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">未選取</span>
+          </h2>
+          <label class="inline-flex items-center cursor-pointer text-xs text-slate-500">
+            <input type="checkbox" id="toggleAllSheets" class="sr-only peer" onchange="renderSheetList()">
+            <div class="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600 relative"></div>
+            <span class="ml-1.5">顯示非週表</span>
+          </label>
+        </div>
+
+        <!-- Search and Pills -->
+        <div class="space-y-2">
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+            <input type="text" id="sheetSearchInput" placeholder="搜尋工作表 (例: 11W4, 2026)..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition" oninput="filterSheets()">
           </div>
 
-          <!-- 自動拆解設定開關 -->
-          <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2 text-xs">
-            <div class="font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-              <i class="fa-solid fa-sliders text-amber-500"></i> 解析高階規則設定
+          <div class="flex items-center justify-between text-xs gap-1">
+            <div class="flex items-center gap-1 overflow-x-auto pb-1" id="sheetFilterPills">
+              <button onclick="setSheetPill('ALL')" class="pill-btn px-2.5 py-1 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">全部</button>
+              <button onclick="setSheetPill('2026')" class="pill-btn px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">2026</button>
+              <button onclick="setSheetPill('2027')" class="pill-btn px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">2027</button>
             </div>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="optSplitVeg" checked class="rounded text-amber-500 focus:ring-amber-400">
-              <span class="text-slate-700 font-medium">自動拆出「素食專卡」（例：西9.5枱含0.5枱西素 ➔ 獨立印素食卡）</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="optCleanTags" checked class="rounded text-amber-500 focus:ring-amber-400">
-              <span class="text-slate-700 font-medium">自動清除內部備註 (如 (pencil), (pan), SW 等)</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="optExcludeHold" checked class="rounded text-amber-500 focus:ring-amber-400">
-              <span class="text-slate-700 font-medium">自動排除標註「取消 / HOLD / CX」之團體</span>
-            </label>
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="selectAllVisibleSheets(true)" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] rounded border border-slate-300">全選</button>
+              <button onclick="selectAllVisibleSheets(false)" class="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] rounded border border-slate-300">取消全選</button>
+            </div>
           </div>
+        </div>
 
-          <!-- 解析出的工作表列表 (選擇週次) -->
-          <div id="sheetListContainer" class="hidden space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-sm text-slate-700">請選擇要匯入的工作表 (週次):</span>
-              <div class="space-x-2 text-xs">
-                <button onclick="selectAllSheets(true)" class="text-amber-600 hover:underline">全選</button>
-                <span class="text-slate-300">|</span>
-                <button onclick="selectAllSheets(false)" class="text-amber-600 hover:underline">取消全選</button>
-              </div>
-            </div>
-            <div id="sheetChips" class="max-h-40 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-wrap gap-1.5">
-              <!-- 動態生成 sheets -->
-            </div>
-            <button onclick="parseSelectedSheets()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2 rounded-lg shadow transition flex items-center justify-center gap-2">
-              <i class="fa-solid fa-rotate text-sm"></i>
-              <span>解析並載入選取工作表數據</span>
+        <!-- Sheet List Scrollable Box -->
+        <div id="sheetListContainer" class="max-h-44 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50/50 space-y-1">
+          <p class="text-xs text-slate-400 text-center py-4">請先上傳 Excel 檔案</p>
+        </div>
+      </section>
+
+      <!-- Group Selection & Management -->
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-3 flex-1 min-h-[300px]">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-users text-indigo-600"></i> 團體資料列表
+            <span id="groupCountBadge" class="text-xs font-normal bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">0 個團體</span>
+          </h2>
+          <div class="flex items-center gap-1.5">
+            <button onclick="selectAllGroups(true)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded border border-slate-300 transition">全選</button>
+            <button onclick="selectAllGroups(false)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded border border-slate-300 transition">取消全選</button>
+            <button onclick="openAddGroupModal()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded shadow-sm transition flex items-center gap-1">
+              <i class="fa-solid fa-plus"></i> 新增
             </button>
           </div>
+        </div>
 
-          <!-- 解析警告提醒（若遇到疑難單元格） -->
-          <div id="parseWarningBox" class="hidden bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 space-y-1">
-            <div class="font-bold flex items-center gap-1.5 text-amber-900">
-              <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> 解析注意事項:
-            </div>
-            <ul id="parseWarningList" class="list-disc list-inside space-y-0.5 text-amber-700">
-            </ul>
+        <!-- Group List Container -->
+        <div id="groupListContainer" class="flex-1 overflow-y-auto max-h-[340px] border border-slate-200 rounded-lg p-2 bg-slate-50/50 space-y-2">
+          <!-- Groups will be injected here -->
+        </div>
+      </section>
+
+      <!-- Layout & Formatting Controls -->
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+        <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+          <i class="fa-solid fa-sliders text-indigo-600"></i> 排版與列印設定
+        </h2>
+
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <!-- Cards per page -->
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">每頁卡片數量</label>
+            <select id="gridSelect" onchange="updatePrintConfig()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none">
+              <option value="4" selected>一頁 4 格 (2×2 Standard)</option>
+              <option value="6">一頁 6 格 (2×3 Dense)</option>
+              <option value="8">一頁 8 格 (2×4 Small)</option>
+            </select>
+          </div>
+
+          <!-- Border Style -->
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">卡片邊框樣式</label>
+            <select id="borderSelect" onchange="updatePrintConfig()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none">
+              <option value="border-solid-card" selected>實線 (0.5pt Solid)</option>
+              <option value="border-dashed-card">虛線 (0.5pt Dashed)</option>
+              <option value="border-none-card">無邊框 (No Border)</option>
+            </select>
           </div>
         </div>
 
-        <!-- 頁籤 2: 團體清單與手動編輯 -->
-        <div id="tabContentGroups" class="p-4 space-y-4 hidden">
-          <!-- 操作按鈕列 -->
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <div class="space-x-2 text-xs">
-              <button onclick="toggleAllGroups(true)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded font-medium">全選</button>
-              <button onclick="toggleAllGroups(false)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded font-medium">取消全選</button>
-            </div>
-            <div class="space-x-2 text-xs">
-              <button onclick="openAddGroupModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded font-bold flex items-center gap-1 inline-flex">
-                <i class="fa-solid fa-plus"></i> 新增團體
-              </button>
-              <button onclick="loadDemoData()" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded font-medium">重置示範</button>
-              <button onclick="clearAllGroups()" class="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded font-medium">清空</button>
-            </div>
+        <!-- Proportional Font Scale Slider -->
+        <div class="pt-1">
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="font-semibold text-slate-700">文字比例縮放 (--card-scale)</span>
+            <span id="fontScaleLabel" class="font-mono text-indigo-600 font-bold">100%</span>
           </div>
-
-          <!-- 團體列表清單 -->
-          <div id="groupList" class="space-y-2.5 max-h-[550px] overflow-y-auto pr-1">
-            <!-- 動態生成團體項目 -->
+          <input type="range" id="fontScaleSlider" min="50" max="150" value="100" step="5" oninput="updateFontScale(this.value)" class="w-full accent-indigo-600 cursor-pointer">
+          <div class="flex justify-between text-[10px] text-slate-400 mt-0.5">
+            <span>50% (極小)</span>
+            <span>100% (預設標楷體)</span>
+            <span>150% (極大)</span>
           </div>
         </div>
-
-      </div>
+      </section>
 
     </aside>
 
-    <!-- 右側面板：A4 頁面即時預覽區 -->
-    <section class="flex-grow flex flex-col items-center">
+    <!-- Right Live Preview Section -->
+    <section class="flex-1 flex flex-col items-center overflow-x-auto preview-container bg-slate-200/70 p-4 rounded-xl border border-slate-300/60 min-h-[800px]">
       
-      <!-- 縮放控制器 (螢幕專用) -->
-      <div class="no-print mb-4 flex items-center gap-2 bg-white px-4 py-1.5 rounded-full shadow-sm border border-slate-200 text-xs">
-        <span class="text-slate-500 font-medium">預覽顯示比例:</span>
-        <button onclick="setPreviewZoom(0.6)" class="hover:text-amber-600">60%</button>
-        <button onclick="setPreviewZoom(0.8)" class="hover:text-amber-600">80%</button>
-        <button onclick="setPreviewZoom(1.0)" class="hover:text-amber-600 font-bold text-amber-600">100%</button>
-        <button onclick="setPreviewZoom(1.2)" class="hover:text-amber-600">120%</button>
+      <!-- Preview Header Toolbar (No Print) -->
+      <div class="no-print w-full max-w-[210mm] flex items-center justify-between bg-slate-900 text-white px-4 py-2 rounded-t-lg shadow-sm mb-3">
+        <span class="text-xs font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-eye text-emerald-400"></i> A4 紙張即時預覽 (100% 標楷體)
+        </span>
+        <span id="previewPageInfo" class="text-xs text-slate-300 font-mono">共 1 頁</span>
       </div>
 
-      <!-- A4 畫布容器 (列印時直接輸出) -->
-      <div id="printArea" class="print-area w-full flex flex-col items-center">
-        <div id="previewViewport" class="preview-viewport flex flex-col items-center">
-          <!-- 動態生成 A4 頁面 -->
-        </div>
+      <!-- Printable A4 Pages Wrapper -->
+      <div id="printPageContainer" class="w-full flex flex-col items-center">
+        <!-- Rendered A4 page elements injected dynamically -->
       </div>
+
     </section>
-
   </main>
 
-  <!-- 編輯 / 新增團體 彈出視窗 (Modal) -->
+  <!-- Group Add/Edit Modal (No Print) -->
   <div id="groupModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
-      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
-        <h3 id="modalTitle" class="font-bold text-base flex items-center gap-2">
-          <i class="fa-solid fa-pen-to-square text-amber-400"></i>
-          <span>編輯團體分枱資料</span>
-        </h3>
-        <button onclick="closeGroupModal()" class="text-slate-400 hover:text-white text-xl">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-150">
+      <div class="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
+        <h3 id="modalTitle" class="font-bold text-sm">新增團體</h3>
+        <button onclick="closeGroupModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
 
-      <div class="p-5 overflow-y-auto space-y-4 text-sm">
-        <!-- 團體名稱 -->
+      <form id="groupForm" onsubmit="saveGroupModal(event)" class="p-5 space-y-4 text-xs">
+        <input type="hidden" id="modalGroupIdx">
+
         <div>
-          <label class="block font-bold text-slate-700 mb-1">團體名稱 (Title)</label>
-          <input type="text" id="modalGroupName" placeholder="例如：中國香港賽艇協會(B)" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 font-kai text-lg focus:ring-2 focus:ring-amber-500 outline-none">
+          <label class="block font-semibold text-slate-700 mb-1">團體名稱</label>
+          <input type="text" id="modalGroupName" required class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="例: 基督中心堂（荃灣）">
         </div>
 
-        <!-- 標籤/副標題與屬性 -->
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">副標題/標籤 (Subtitle)</label>
-            <input type="text" id="modalGroupSubtitle" placeholder="例如：(西) 或 Vegetables" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 outline-none">
+            <label class="block font-semibold text-slate-700 mb-1">標籤 (如: 西 / 素食)</label>
+            <input type="text" id="modalGroupTag" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="例: (西) 或 Vegetables">
           </div>
           <div>
-            <label class="block font-bold text-slate-700 mb-1">滿圍/半圍張數</label>
-            <div class="flex gap-2">
-              <input type="number" id="modalFullCount" min="0" placeholder="滿圍數" class="w-1/2 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-center">
-              <input type="number" id="modalHalfCount" min="0" placeholder="半圍數" class="w-1/2 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-center">
-            </div>
+            <label class="block font-semibold text-slate-700 mb-1">圍數 (支援 .5 半圍)</label>
+            <input type="number" id="modalGroupTables" step="0.5" min="0.5" required class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="例: 4 或 2.5">
           </div>
         </div>
 
-        <!-- 頁尾人數限制 -->
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">滿圍每枱人數</label>
-            <input type="number" id="modalMaxFullPeople" value="8" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5">
-          </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">半圍每枱人數</label>
-            <input type="number" id="modalMaxHalfPeople" value="4" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5">
-          </div>
-        </div>
-
-        <!-- 每日餐程列表 -->
         <div>
-          <div class="flex items-center justify-between mb-2">
-            <label class="font-bold text-slate-700">膳食日程安排 (Date & Meals)</label>
-            <button onclick="addModalMealRow()" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold px-2 py-1 rounded flex items-center gap-1">
+          <div class="flex items-center justify-between mb-1">
+            <label class="font-semibold text-slate-700">用餐日期及餐別</label>
+            <button type="button" onclick="addModalMealRow()" class="text-indigo-600 hover:text-indigo-700 font-medium text-[11px] flex items-center gap-1">
               <i class="fa-solid fa-plus"></i> 新增日期
             </button>
           </div>
           
-          <div id="modalMealList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-            <!-- 動態生成日程輸入列 -->
+          <div id="modalMealRows" class="space-y-2 max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2 bg-slate-50">
+            <!-- Dynamic meal rows -->
           </div>
         </div>
-      </div>
 
-      <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
-        <button onclick="closeGroupModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-medium">取消</button>
-        <button onclick="saveGroupModal()" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-lg shadow">儲存修改</button>
+        <div class="pt-3 border-t border-slate-200 flex justify-end gap-2">
+          <button type="button" onclick="closeGroupModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium">取消</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold shadow-sm">儲存團體</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Custom Alert/Confirm Modal -->
+  <div id="customDialogModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden p-5 text-center space-y-4">
+      <div id="dialogIcon" class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto text-xl">
+        <i class="fa-solid fa-circle-info"></i>
+      </div>
+      <h3 id="dialogTitle" class="font-bold text-slate-800 text-base">提示</h3>
+      <p id="dialogMessage" class="text-xs text-slate-600 leading-relaxed"></p>
+      <div id="dialogButtons" class="flex justify-center gap-2 pt-2">
+        <button id="dialogOkBtn" onclick="closeCustomDialog()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-sm">確定</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast 訊息提示元件 -->
-  <div id="toast" class="no-print fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl z-50 hidden flex items-center gap-3 transition-opacity duration-300 border border-slate-700">
-    <i id="toastIcon" class="fa-solid fa-circle-info text-amber-400 text-lg"></i>
-    <span id="toastMsg" class="text-sm font-medium">提示訊息</span>
-  </div>
-
-  <!-- JS 邏輯處理 -->
   <script>
-    // ==========================================
-    // 全域狀態與預設示範數據
-    // ==========================================
-    
-    // 預載示範數據 (包含用戶相片中的「中國香港賽艇協會(B)」半圍卡與「基督中心堂（荃灣）」)
-    const DEMO_GROUPS = [
+    /**
+     * PURE JAVASCRIPT ZIP & OOXML PARSER (ZERO CDN DEPENDENCY)
+     */
+    class MiniZipParser {
+      constructor(arrayBuffer) {
+        this.buffer = arrayBuffer;
+        this.view = new DataView(arrayBuffer);
+        this.entries = new Map();
+      }
+
+      async parseCentralDirectory() {
+        if (this.buffer.byteLength < 22) {
+          throw new Error("檔案過小，不是有效的 Zip / Excel 檔案。");
+        }
+
+        const magic = this.view.getUint32(0, true);
+        // Check for old binary .xls signature
+        if (magic === 0xE011CFD0 || magic === 0xD0CF11E0) {
+          throw new Error("此檔案為舊版 .xls 格式，請在 Excel 中「另存新檔」為 .xlsx 格式再上傳。");
+        }
+        if (magic !== 0x04034b50 && magic !== 0x02014b50) {
+          throw new Error("此檔案不是有效的 ZIP / .xlsx 格式檔案。");
+        }
+
+        // Search backward for End of Central Directory Record (0x06054b50)
+        let eocdOffset = -1;
+        const maxSearch = Math.min(this.buffer.byteLength, 65557);
+        const searchStart = this.buffer.byteLength - 22;
+        
+        for (let i = searchStart; i >= this.buffer.byteLength - maxSearch; i--) {
+          if (this.view.getUint32(i, true) === 0x06054b50) {
+            eocdOffset = i;
+            break;
+          }
+        }
+
+        if (eocdOffset === -1) {
+          throw new Error("無法解析 Zip 目錄結構 (未找到 End of Central Directory)。");
+        }
+
+        const cdOffset = this.view.getUint32(eocdOffset + 16, true);
+        const cdEntriesCount = this.view.getUint16(eocdOffset + 10, true);
+
+        let offset = cdOffset;
+        for (let i = 0; i < cdEntriesCount; i++) {
+          if (offset + 46 > this.buffer.byteLength) break;
+          if (this.view.getUint32(offset, true) !== 0x02014b50) break;
+
+          const method = this.view.getUint16(offset + 10, true);
+          const compSize = this.view.getUint32(offset + 20, true);
+          const uncompSize = this.view.getUint32(offset + 24, true);
+          const nameLen = this.view.getUint16(offset + 28, true);
+          const extraLen = this.view.getUint16(offset + 30, true);
+          const commentLen = this.view.getUint16(offset + 32, true);
+          const localHeaderOffset = this.view.getUint32(offset + 42, true);
+
+          const nameBytes = new Uint8Array(this.buffer, offset + 46, nameLen);
+          const filename = new TextDecoder('utf-8').decode(nameBytes);
+          const normName = filename.replace(/^[\/\\]+/, '');
+
+          this.entries.set(normName, {
+            filename: normName,
+            method,
+            compSize,
+            uncompSize,
+            localHeaderOffset
+          });
+
+          offset += 46 + nameLen + extraLen + commentLen;
+        }
+      }
+
+      async readEntryText(filename) {
+        const normName = filename.replace(/^[\/\\]+/, '');
+        const entry = this.entries.get(normName);
+        if (!entry) return null;
+
+        const lhOffset = entry.localHeaderOffset;
+        if (this.view.getUint32(lhOffset, true) !== 0x04034b50) {
+          throw new Error(`Zip entry header error: ${normName}`);
+        }
+
+        const lhNameLen = this.view.getUint16(lhOffset + 26, true);
+        const lhExtraLen = this.view.getUint16(lhOffset + 28, true);
+        const dataOffset = lhOffset + 30 + lhNameLen + lhExtraLen;
+
+        const compressedData = new Uint8Array(this.buffer, dataOffset, entry.compSize);
+
+        if (entry.method === 0) {
+          return new TextDecoder('utf-8').decode(compressedData);
+        } else if (entry.method === 8) {
+          // Decompress raw deflate stream without external dependencies
+          const blob = new Blob([compressedData]);
+          const decompressedStream = blob.stream().pipeThrough(new DecompressionStream('deflate-raw'));
+          const resp = new Response(decompressedStream);
+          const decompressedBuffer = await resp.arrayBuffer();
+          return new TextDecoder('utf-8').decode(decompressedBuffer);
+        } else {
+          throw new Error(`不支援的 Zip 壓縮格式 (method=${entry.method})`);
+        }
+      }
+    }
+
+    /**
+     * GLOBAL STATE MANAGEMENT
+     */
+    let parsedWorkbook = {
+      zip: null,
+      date1904: false,
+      sheets: [], // { name, path, id }
+      sharedStrings: []
+    };
+
+    let activeSheetsData = new Map(); // sheetName -> parsed rows
+    let currentGroups = []; // Array of processed group card objects
+    let selectedSheetNames = new Set();
+    let currentPillFilter = 'ALL';
+
+    // Initial Sample Groups (Matching user photos)
+    const SAMPLE_GROUPS = [
       {
-        id: 'demo-1',
-        name: '中國香港賽艇協會(B)',
-        subtitle: '',
-        enabled: true,
-        fullCount: 2,
-        halfCount: 1,
-        maxFullPeople: 8,
-        maxHalfPeople: 4,
-        isWestern: false,
-        isVeg: false,
-        meals: [
-          { date: '18/12', text: '晚餐 2.5 枱' },
-          { date: '19/12', text: '早、晚餐 2.5 枱' },
-          { date: '20/12', text: '早、午餐 2.5 枱' }
+        id: 'sample-1',
+        name: '基督中心堂（荃灣）',
+        tag: '',
+        tables: 4,
+        checked: true,
+        isStatusBadge: false,
+        mealsByDate: [
+          { dateStr: '24/12', meals: [{ meal: '晚餐', tables: 4 }] },
+          { dateStr: '25/12', meals: [{ meal: '早、午餐', tables: 4 }] },
+          { dateStr: '26/12', meals: [{ meal: '早、午餐', tables: 4 }] }
         ]
       },
       {
-        id: 'demo-2',
-        name: '基督中心堂（荃灣）',
-        subtitle: '',
-        enabled: true,
-        fullCount: 4,
-        halfCount: 0,
-        maxFullPeople: 8,
-        maxHalfPeople: 4,
-        isWestern: false,
-        isVeg: false,
-        meals: [
-          { date: '24/12', text: '晚餐 4 枱' },
-          { date: '25/12', text: '早、午餐 4 枱' },
-          { date: '26/12', text: '早、午餐 4 枱' }
+        id: 'sample-2',
+        name: '中國香港賽艇協會(B)',
+        tag: '',
+        tables: 2.5,
+        checked: true,
+        isStatusBadge: false,
+        mealsByDate: [
+          { dateStr: '18/12', meals: [{ meal: '晚餐', tables: 2.5 }] },
+          { dateStr: '19/12', meals: [{ meal: '早、晚餐', tables: 2.5 }] },
+          { dateStr: '20/12', meals: [{ meal: '早、午餐', tables: 2.5 }] }
         ]
       }
     ];
 
-    let groupsData = [];
-    let parsedWorkbook = null;
-    let availableSheets = [];
-    let currentEditingGroupId = null;
-
-    // 排版與視覺控制變數
-    let gridMode = 4; // 4, 6, 8
-    let borderStyle = 'border-solid-thin';
-    let halfSort = 'follow'; // 'follow' 或 'group_last'
-    let cardScale = 1.0;
-    let previewZoom = 1.0;
-
-    // ==========================================
-    // 初始化與 LocalStorage 載入
-    // ==========================================
+    /**
+     * ON PAGE LOAD
+     */
     window.onload = function() {
-      loadSavedSettings();
-      renderGroupList();
-      renderPages();
+      // Setup drag and drop
+      const dropZone = document.getElementById('dropZone');
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
+        }, false);
+      });
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+        }, false);
+      });
+      dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+          processFile(files[0]);
+        }
+      });
+
+      // Load initial samples
+      loadSampleData();
     };
 
-    function loadSavedSettings() {
+    /**
+     * SAMPLE DATA LOADER
+     */
+    function loadSampleData() {
+      currentGroups = JSON.parse(JSON.stringify(SAMPLE_GROUPS));
+      document.getElementById('sheetListContainer').innerHTML = '<p class="text-xs text-slate-400 text-center py-4">目前使用預設示範資料</p>';
+      document.getElementById('sheetCountBadge').innerText = '示範模式';
+      renderGroupList();
+      renderPrintPreview();
+    }
+
+    /**
+     * FILE UPLOAD HANDLER
+     */
+    async function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      await processFile(file);
+      e.target.value = ''; // Reset input to allow re-uploading same file
+    }
+
+    async function processFile(file) {
+      const statusEl = document.getElementById('parsingStatus');
+      const errorAlert = document.getElementById('errorAlert');
+      const errorMsg = document.getElementById('errorMessage');
+
+      errorAlert.classList.add('hidden');
+      statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> 解析中...';
+
       try {
-        const saved = localStorage.getItem('camp_table_cards_data');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          groupsData = parsed.groupsData || DEMO_GROUPS;
-          gridMode = parsed.gridMode || 4;
-          borderStyle = parsed.borderStyle || 'border-solid-thin';
-          halfSort = parsed.halfSort || 'follow';
-          cardScale = parsed.cardScale || 1.0;
+        const buffer = await file.arrayBuffer();
+        const zip = new MiniZipParser(buffer);
+        await zip.parseCentralDirectory();
 
-          document.getElementById('selectGridMode').value = gridMode;
-          document.getElementById('selectBorderStyle').value = borderStyle;
-          document.getElementById('selectHalfSort').value = halfSort;
-          document.getElementById('inputCardScale').value = cardScale;
-          updateCardScaleDisplay(cardScale);
-        } else {
-          groupsData = JSON.parse(JSON.stringify(DEMO_GROUPS));
+        // 1. Parse workbook.xml
+        const wbXmlText = await zip.readEntryText('xl/workbook.xml');
+        if (!wbXmlText) throw new Error("無效的 Excel 檔案：找不到 xl/workbook.xml");
+
+        const domParser = new DOMParser();
+        const wbDoc = domParser.parseFromString(wbXmlText, 'text/xml');
+
+        // Check date1904
+        const wbPr = wbDoc.querySelector('workbookPr');
+        const date1904 = wbPr ? (wbPr.getAttribute('date1904') === '1' || wbPr.getAttribute('date1904') === 'true') : false;
+
+        // 2. Parse relationshipsxl/_rels/workbook.xml.rels
+        const relsText = await zip.readEntryText('xl/_rels/workbook.xml.rels') || await zip.readEntryText('xl/_rels/workbook.xml.rels');
+        const relsMap = new Map();
+        if (relsText) {
+          const relsDoc = domParser.parseFromString(relsText, 'text/xml');
+          relsDoc.querySelectorAll('Relationship').forEach(rel => {
+            const id = rel.getAttribute('Id');
+            let target = rel.getAttribute('Target');
+            if (!target.startsWith('xl/') && !target.startsWith('/xl/')) {
+              target = 'xl/' + target.replace(/^\/+/, '');
+            } else {
+              target = target.replace(/^\/+/, '');
+            }
+            relsMap.set(id, target);
+          });
         }
-      } catch (e) {
-        console.error('Failed to load local storage:', e);
-        groupsData = JSON.parse(JSON.stringify(DEMO_GROUPS));
-      }
-    }
 
-    function saveStateToLocal() {
-      try {
-        const dataToSave = {
-          groupsData,
-          gridMode,
-          borderStyle,
-          halfSort,
-          cardScale
-        };
-        localStorage.setItem('camp_table_cards_data', JSON.stringify(dataToSave));
-      } catch (e) {
-        console.warn('LocalStorage save error:', e);
-      }
-    }
+        // Parse sheets list
+        const sheetNodes = wbDoc.querySelectorAll('sheet');
+        const sheets = [];
+        sheetNodes.forEach(s => {
+          const name = s.getAttribute('name');
+          const rId = s.getAttribute('r:id') || s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+          const path = relsMap.get(rId) || `xl/worksheets/sheet${sheets.length + 1}.xml`;
+          sheets.push({ name, path, id: rId });
+        });
 
-    // ==========================================
-    // UI 控制與頁籤切換
-    // ==========================================
-    function switchTab(tab) {
-      const tabExcel = document.getElementById('tabContentExcel');
-      const tabGroups = document.getElementById('tabContentGroups');
-      const btnExcel = document.getElementById('tabBtnExcel');
-      const btnGroups = document.getElementById('tabBtnGroups');
-
-      if (tab === 'excel') {
-        tabExcel.classList.remove('hidden');
-        tabGroups.classList.add('hidden');
-        btnExcel.className = "flex-1 py-3 px-4 font-bold text-center border-b-2 border-amber-500 text-amber-600 bg-white transition flex items-center justify-center gap-2";
-        btnGroups.className = "flex-1 py-3 px-4 font-bold text-center border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-2";
-      } else {
-        tabExcel.classList.add('hidden');
-        tabGroups.classList.remove('hidden');
-        btnGroups.className = "flex-1 py-3 px-4 font-bold text-center border-b-2 border-amber-500 text-amber-600 bg-white transition flex items-center justify-center gap-2";
-        btnExcel.className = "flex-1 py-3 px-4 font-bold text-center border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-2";
-      }
-    }
-
-    function updateGridMode(val) {
-      gridMode = parseInt(val, 10);
-      // 自動調整推薦預設縮放
-      if (gridMode === 6) cardScale = 0.80;
-      else if (gridMode === 8) cardScale = 0.68;
-      else cardScale = 1.0;
-
-      document.getElementById('inputCardScale').value = cardScale;
-      updateCardScaleDisplay(cardScale);
-      saveStateToLocal();
-      renderPages();
-    }
-
-    function updateBorderStyle(val) {
-      borderStyle = val;
-      saveStateToLocal();
-      renderPages();
-    }
-
-    function updateHalfSort(val) {
-      halfSort = val;
-      saveStateToLocal();
-      renderPages();
-    }
-
-    function updateCardScale(val) {
-      cardScale = parseFloat(val);
-      updateCardScaleDisplay(cardScale);
-      saveStateToLocal();
-      renderPages();
-    }
-
-    function updateCardScaleDisplay(val) {
-      document.getElementById('labelScaleValue').innerText = Math.round(val * 100) + '%';
-      document.documentElement.style.setProperty('--card-scale', val);
-    }
-
-    function resetScale() {
-      cardScale = (gridMode === 6) ? 0.80 : (gridMode === 8 ? 0.68 : 1.0);
-      document.getElementById('inputCardScale').value = cardScale;
-      updateCardScaleDisplay(cardScale);
-      saveStateToLocal();
-      renderPages();
-    }
-
-    function setPreviewZoom(zoom) {
-      previewZoom = zoom;
-      const viewport = document.getElementById('previewViewport');
-      viewport.style.transform = `scale(${zoom})`;
-    }
-
-    function showToast(msg, icon = 'fa-circle-info') {
-      const toast = document.getElementById('toast');
-      document.getElementById('toastMsg').innerText = msg;
-      document.getElementById('toastIcon').className = `fa-solid ${icon} text-amber-400 text-lg`;
-      toast.classList.remove('hidden');
-      toast.style.opacity = '1';
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.classList.add('hidden'), 300);
-      }, 3000);
-    }
-
-    // ==========================================
-    // Excel 檔案拖拉與解析邏輯 (SheetJS)
-    // ==========================================
-    function handleDragOver(e) {
-      e.preventDefault();
-      document.getElementById('dropzone').classList.add('border-amber-500', 'bg-amber-100/50');
-    }
-
-    function handleDragLeave(e) {
-      e.preventDefault();
-      document.getElementById('dropzone').classList.remove('border-amber-500', 'bg-amber-100/50');
-    }
-
-    function handleDrop(e) {
-      e.preventDefault();
-      document.getElementById('dropzone').classList.remove('border-amber-500', 'bg-amber-100/50');
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        processExcelFile(e.dataTransfer.files[0]);
-      }
-    }
-
-    function handleFileSelect(e) {
-      if (e.target.files && e.target.files.length > 0) {
-        processExcelFile(e.target.files[0]);
-      }
-    }
-
-    function processExcelFile(file) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const data = new Uint8Array(e.target.result);
-          parsedWorkbook = XLSX.read(data, { type: 'array', cellDates: true });
-          
-          availableSheets = parsedWorkbook.SheetNames;
-          renderSheetSelectionChips();
-          showToast(`已成功讀取 Excel 檔案，共 ${availableSheets.length} 個工作表`, 'fa-file-excel');
-        } catch (err) {
-          console.error('Excel Parsing Error:', err);
-          showToast('無法解析 Excel 檔案，請確定格式是否正確', 'fa-triangle-exclamation');
+        // 3. Fast Parse sharedStrings.xml
+        const ssText = await zip.readEntryText('xl/sharedStrings.xml');
+        const sharedStrings = [];
+        if (ssText) {
+          const ssDoc = domParser.parseFromString(ssText, 'text/xml');
+          const siNodes = ssDoc.querySelectorAll('si');
+          siNodes.forEach(si => {
+            // Get text content of all <t> except those inside <rPh>
+            let str = '';
+            si.childNodes.forEach(child => {
+              if (child.nodeName === 't') {
+                str += child.textContent || '';
+              } else if (child.nodeName === 'r') {
+                child.querySelectorAll('t').forEach(tNode => {
+                  str += tNode.textContent || '';
+                });
+              }
+            });
+            sharedStrings.push(str);
+          });
         }
-      };
-      reader.readAsArrayBuffer(file);
+
+        parsedWorkbook = { zip, date1904, sheets, sharedStrings };
+        activeSheetsData.clear();
+        selectedSheetNames.clear();
+
+        // Render Sheet selector list
+        renderSheetList();
+
+        // Auto-select latest weekly sheet (e.g. 11W4 or similar)
+        const weeklySheets = sheets.filter(s => isWeeklySheet(s.name));
+        if (weeklySheets.length > 0) {
+          const defaultSheet = weeklySheets[weeklySheets.length - 1];
+          selectedSheetNames.add(defaultSheet.name);
+          updateSheetCheckboxes();
+          await parseSelectedSheetsAndMerge();
+        }
+
+        statusEl.innerHTML = '<span class="text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check"></i> 解析成功</span>';
+      } catch (err) {
+        console.error(err);
+        statusEl.innerHTML = '<span class="text-red-600 font-semibold"><i class="fa-solid fa-circle-xmark"></i> 解析失敗</span>';
+        errorMsg.innerText = err.message || '無法解析該 Excel 檔案，請確認格式是否正確。';
+        errorAlert.classList.remove('hidden');
+      }
     }
 
-    function renderSheetSelectionChips() {
+    /**
+     * SHEET FILTERING & LIST UI
+     */
+    function isWeeklySheet(name) {
+      const nonWeeklyKeywords = ['空白表', 'MENU', '菜式分量', '工作表1', '防疫餐餐單', 'Sheet'];
+      for (let k of nonWeeklyKeywords) {
+        if (name.includes(k)) return false;
+      }
+      return true;
+    }
+
+    function renderSheetList() {
       const container = document.getElementById('sheetListContainer');
-      const chips = document.getElementById('sheetChips');
-      container.classList.remove('hidden');
-      chips.innerHTML = '';
+      const showAll = document.getElementById('toggleAllSheets').checked;
+      const searchVal = document.getElementById('sheetSearchInput').value.trim().toLowerCase();
 
-      availableSheets.forEach((sheetName, index) => {
-        // 預設打勾包含數字/W/週 的 Sheet
-        const isLikelyMealSheet = /[0-9]+[wW]/i.test(sheetName) || sheetName.includes('週') || sheetName.includes('膳');
-        const checked = isLikelyMealSheet ? 'checked' : '';
-        
-        const label = document.createElement('label');
-        label.className = "inline-flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs cursor-pointer hover:border-amber-400 select-none";
-        label.innerHTML = `
-          <input type="checkbox" value="${sheetName}" ${checked} class="sheet-checkbox text-amber-500 rounded">
-          <span class="font-medium text-slate-700">${sheetName}</span>
-        `;
-        chips.appendChild(label);
+      if (!parsedWorkbook.sheets || parsedWorkbook.sheets.length === 0) return;
+
+      let filtered = parsedWorkbook.sheets.filter(s => {
+        if (!showAll && !isWeeklySheet(s.name)) return false;
+        if (currentPillFilter !== 'ALL' && !s.name.includes(currentPillFilter)) return false;
+        if (searchVal && !s.name.toLowerCase().includes(searchVal)) return false;
+        return true;
       });
-    }
 
-    function selectAllSheets(flag) {
-      document.querySelectorAll('.sheet-checkbox').forEach(cb => cb.checked = flag);
-    }
-
-    // 解析選取的 Excel 工作表核心算術邏輯
-    function parseSelectedSheets() {
-      if (!parsedWorkbook) return;
-      const checkedBoxes = document.querySelectorAll('.sheet-checkbox:checked');
-      const selectedNames = Array.from(checkedBoxes).map(cb => cb.value);
-
-      if (selectedNames.length === 0) {
-        showToast('請至少選擇一個工作表！', 'fa-triangle-exclamation');
+      if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">沒有找到相符的工作表</p>';
         return;
       }
 
-      const optSplitVeg = document.getElementById('optSplitVeg').checked;
-      const optCleanTags = document.getElementById('optCleanTags').checked;
-      const optExcludeHold = document.getElementById('optExcludeHold').checked;
+      let html = '';
+      filtered.forEach(s => {
+        const isChecked = selectedSheetNames.has(s.name);
+        html += `
+          <label class="flex items-center justify-between p-1.5 hover:bg-slate-100 rounded cursor-pointer transition text-xs">
+            <div class="flex items-center space-x-2 truncate">
+              <input type="checkbox" value="${escapeHtml(s.name)}" ${isChecked ? 'checked' : ''} onchange="onSheetToggle(this)" class="rounded text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5">
+              <span class="font-mono ${isChecked ? 'font-bold text-indigo-700' : 'text-slate-700'} truncate">${escapeHtml(s.name)}</span>
+            </div>
+            ${isWeeklySheet(s.name) ? '<span class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0">週表</span>' : ''}
+          </label>
+        `;
+      });
 
-      const warningLogs = [];
-      const rawGroupMap = new Map(); // Key: 團體名, Value: { name, meals: { dateStr: { B, L, D, BBQ } }, notes }
+      container.innerHTML = html;
+      updateSheetCountBadge();
+    }
 
-      selectedNames.forEach(sheetName => {
-        const sheet = parsedWorkbook.Sheets[sheetName];
-        if (!sheet) return;
+    function filterSheets() {
+      renderSheetList();
+    }
 
-        // 將工作表轉換為二維陣列 (索引從 0 開始)
-        const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1:Z100');
-        const grid = [];
-        for (let R = 0; R <= range.e.r; ++R) {
-          const row = [];
-          for (let C = 0; C <= range.e.c; ++C) {
-            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-            const cell = sheet[cellAddress];
-            row.push(cell ? cell.v : null);
-          }
-          grid.push(row);
-        }
+    function setSheetPill(pill) {
+      currentPillFilter = pill;
+      document.querySelectorAll('#sheetFilterPills button').forEach(btn => {
+        btn.className = 'pill-btn px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200';
+      });
+      event.target.className = 'pill-btn px-2.5 py-1 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200';
+      renderSheetList();
+    }
 
-        // 定位日期列 (搜尋第 7-10 行，尋求格式如 18/12 或 Date 物件)
-        let dateRowIndex = -1;
-        let groupColIndex = 2; // Row C預設為團體名 (Col 2)
+    function selectAllVisibleSheets(select) {
+      const container = document.getElementById('sheetListContainer');
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        cb.checked = select;
+        if (select) selectedSheetNames.add(cb.value);
+        else selectedSheetNames.delete(cb.value);
+      });
+      updateSheetCountBadge();
+      parseSelectedSheetsAndMerge();
+    }
 
-        for (let r = 0; r < Math.min(15, grid.length); r++) {
-          const row = grid[r];
-          if (!row) continue;
-          for (let c = 0; c < row.length; c++) {
-            const val = String(row[c] || '');
-            if (val.includes('團體') || val.includes('機構')) {
-              groupColIndex = c;
+    async function onSheetToggle(cb) {
+      if (cb.checked) {
+        selectedSheetNames.add(cb.value);
+      } else {
+        selectedSheetNames.delete(cb.value);
+      }
+      updateSheetCountBadge();
+      await parseSelectedSheetsAndMerge();
+    }
+
+    function updateSheetCheckboxes() {
+      const container = document.getElementById('sheetListContainer');
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        cb.checked = selectedSheetNames.has(cb.value);
+      });
+    }
+
+    function updateSheetCountBadge() {
+      document.getElementById('sheetCountBadge').innerText = `已選 ${selectedSheetNames.size} 個`;
+    }
+
+    /**
+     * ON-DEMAND WORKSHEET PARSER
+     */
+    async function parseSelectedSheetsAndMerge() {
+      if (selectedSheetNames.size === 0) {
+        currentGroups = [];
+        renderGroupList();
+        renderPrintPreview();
+        return;
+      }
+
+      // Decompress and parse only newly selected sheets
+      for (let sheetName of selectedSheetNames) {
+        if (!activeSheetsData.has(sheetName)) {
+          const sheetObj = parsedWorkbook.sheets.find(s => s.name === sheetName);
+          if (sheetObj) {
+            const sheetXml = await parsedWorkbook.zip.readEntryText(sheetObj.path);
+            if (sheetXml) {
+              const parsedSheet = parseSingleWorksheet(sheetXml);
+              activeSheetsData.set(sheetName, parsedSheet);
             }
-            if (val.includes('/') || (row[c] instanceof Date)) {
-              if (dateRowIndex === -1) dateRowIndex = r;
+          }
+        }
+      }
+
+      // Merge all selected sheet data
+      mergeAndBuildGroups();
+    }
+
+    function parseSingleWorksheet(xmlText) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlText, 'text/xml');
+      const rows = doc.querySelectorAll('row');
+      
+      const sheetData = []; // [{ rowNum, cells: { colNum: val } }]
+
+      rows.forEach(row => {
+        const rNum = parseInt(row.getAttribute('r'));
+        if (rNum > 35) return; // Skip rows > 35 for ultra fast execution
+
+        const rowCells = {};
+        const cNodes = row.querySelectorAll('c');
+
+        cNodes.forEach(c => {
+          const ref = c.getAttribute('r');
+          const colStr = ref.replace(/[0-9]/g, '');
+          const colNum = colToNum(colStr);
+          const type = c.getAttribute('t');
+
+          let val = null;
+          const vNode = c.querySelector('v');
+          const isNode = c.querySelector('is');
+
+          if (type === 's' && vNode) {
+            const idx = parseInt(vNode.textContent);
+            val = parsedWorkbook.sharedStrings[idx] ?? '';
+          } else if (type === 'str' && vNode) {
+            val = vNode.textContent;
+          } else if (type === 'inlineStr' && isNode) {
+            let inline = '';
+            isNode.querySelectorAll('t').forEach(t => inline += t.textContent);
+            val = inline;
+          } else if (type === 'e') {
+            val = null;
+          } else if (vNode) {
+            val = parseFloat(vNode.textContent);
+          }
+
+          rowCells[colNum] = val;
+        });
+
+        sheetData.push({ rNum, cells: rowCells });
+      });
+
+      return sheetData;
+    }
+
+    function colToNum(colStr) {
+      let num = 0;
+      for (let i = 0; i < colStr.length; i++) {
+        num = num * 26 + (colStr.charCodeAt(i) - 64);
+      }
+      return num;
+    }
+
+    /**
+     * WEEKLY MEAL MATRIX PARSER & COMPOSITE SPLITTING
+     */
+    function mergeAndBuildGroups() {
+      const mergedGroupsMap = new Map(); // key -> group object
+
+      for (let sheetName of selectedSheetNames) {
+        const rows = activeSheetsData.get(sheetName);
+        if (!rows) continue;
+
+        // 1. Find Header Row containing '團體'
+        let headerRowObj = null;
+        for (let r of rows) {
+          // Check columns 2..5
+          for (let c = 2; c <= 5; c++) {
+            const val = String(r.cells[c] || '');
+            if (val.includes('團體')) {
+              headerRowObj = r;
+              break;
+            }
+          }
+          if (headerRowObj) break;
+        }
+
+        if (!headerRowObj) {
+          // Fallback to row 8
+          headerRowObj = rows.find(r => r.rNum === 8) || rows[0];
+        }
+
+        const headerRowNum = headerRowObj ? headerRowObj.rNum : 8;
+
+        // 2. Extract Date Columns
+        let dateCols = []; // [{ dcol, dateStr }]
+        if (headerRowObj) {
+          for (let col = 8; col <= 50; col += 6) {
+            const cellVal = headerRowObj.cells[col];
+            let dateStr = null;
+
+            if (typeof cellVal === 'number' && cellVal > 35000 && cellVal < 65000) {
+              dateStr = excelSerialToDateStr(cellVal, parsedWorkbook.date1904);
+            } else if (typeof cellVal === 'string' && cellVal.trim()) {
+              const m = cellVal.match(/(\d{1,2}\/\d{1,2})/);
+              if (m) dateStr = m[1];
+            }
+
+            if (dateStr) {
+              dateCols.push({ dcol: col, dateStr });
             }
           }
         }
 
-        if (dateRowIndex === -1) dateRowIndex = 7; // Row 8 預設
-
-        // 讀取日期欄位：每 6 欄為一日 (H, N, T, Z, AF, AL, AR -> Col 7, 13, 19, 25, 31, 37, 43)
-        const dateCols = [];
-        const dateRow = grid[dateRowIndex] || [];
-        for (let c = 7; c < dateRow.length; c += 6) {
-          const cellVal = dateRow[c];
-          let formattedDate = '';
-
-          if (cellVal instanceof Date) {
-            const m = cellVal.getMonth() + 1;
-            const d = cellVal.getDate();
-            formattedDate = `${d}/${m}`;
-          } else if (cellVal) {
-            const str = String(cellVal).trim();
-            const match = str.match(/(\d{1,2}\/\d{1,2})/);
-            if (match) formattedDate = match[1];
-          }
-
-          if (formattedDate) {
-            dateCols.push({ colStart: c, dateStr: formattedDate });
-          }
-        }
-
-        // 若無法直接讀出日期，自動推算 7 天
+        // Fallback for D1 serial if Row 8 had no dates
         if (dateCols.length === 0) {
-          let baseDate = new Date();
-          for (let i = 0; i < 7; i++) {
-            let col = 7 + i * 6;
-            let d = new Date(baseDate);
-            d.setDate(d.getDate() + i);
-            dateCols.push({ colStart: col, dateStr: `${d.getDate()}/${d.getMonth() + 1}` });
+          const d1Row = rows.find(r => r.rNum === 1);
+          const d1Val = d1Row ? d1Row.cells[4] || d1Row.cells[3] : null;
+          let startDate = null;
+          if (typeof d1Val === 'number' && d1Val > 35000) {
+            startDate = d1Val;
           }
+          const baseCols = [8, 14, 20, 26, 32, 38, 44];
+          baseCols.forEach((col, idx) => {
+            const serial = startDate ? startDate + idx : 45284 + idx; // default dummy
+            dateCols.push({ dcol: col, dateStr: excelSerialToDateStr(serial, parsedWorkbook.date1904) });
+          });
         }
 
-        // 逐行讀取團體資料 (從 dateRowIndex + 2 開始)
-        for (let r = dateRowIndex + 2; r < grid.length; r++) {
-          const row = grid[r];
-          if (!row) continue;
+        // 3. Iterate Group Rows (Row headerRowNum + 3 up to Row 30 or '每餐總')
+        const groupRows = rows.filter(r => r.rNum >= headerRowNum + 3 && r.rNum <= 32);
 
-          let groupName = String(row[groupColIndex] || '').trim();
-          if (!groupName || groupName === '團體' || groupName.includes('總計') || groupName.includes('小計')) continue;
+        for (let r of groupRows) {
+          const colB = String(r.cells[2] || '');
+          if (colB.includes('每餐總') || colB.includes('總枱數')) break;
 
-          // 清除 (pencil), (pan) 等內部標註
-          if (optCleanTags) {
-            groupName = groupName.replace(/\((pencil|pencal|pan|PAN pencil mark)[^)]*\)/gi, '').trim();
+          const groupNameRaw = String(r.cells[3] || '').trim();
+          if (!groupNameRaw) continue;
+
+          // Process each date for this group
+          dateCols.forEach(({ dcol, dateStr }) => {
+            const bVal = r.cells[dcol];     // Breakfast
+            const lVal = r.cells[dcol + 2]; // Lunch
+            const dVal = r.cells[dcol + 4]; // Dinner
+
+            parseMealCell(groupNameRaw, dateStr, '早餐', bVal, mergedGroupsMap);
+            parseMealCell(groupNameRaw, dateStr, '午餐', lVal, mergedGroupsMap);
+            parseMealCell(groupNameRaw, dateStr, '晚餐', dVal, mergedGroupsMap);
+          });
+        }
+      }
+
+      // Convert map to array and finalize structure
+      const rawList = Array.from(mergedGroupsMap.values());
+      currentGroups = finalizeGroupsStructure(rawList);
+
+      renderGroupList();
+      renderPrintPreview();
+    }
+
+    /**
+     * PARSE INDIVIDUAL MEAL CELL WITH BBQ & COMPOSITE VEG SPLITTING
+     */
+    function parseMealCell(groupNameRaw, dateStr, mealType, val, mergedGroupsMap) {
+      if (val === null || val === undefined) return;
+      const strVal = String(val).trim();
+      if (!strVal || strVal === '0' || strVal === 'X' || strVal === 'x') return;
+
+      // Ignore note cells without tables
+      if (/^\(人數有變\)$|^2組原烹$|^↑.*加底$|148 SW|租飯堂|食PIZZA/i.test(strVal)) return;
+
+      // Extract status badges like (取消), (HOLD), (CX)
+      const isCancelled = /取消|HOLD|CX/i.test(groupNameRaw) || /取消|HOLD|CX/i.test(strVal);
+
+      // Check composite split formats e.g. "西\n9.5\n(半枱西素)", "9枱\n(A餐)\n(8.5枱正常)\n(半枱素)"
+      let vegTables = 0;
+      let regTables = 0;
+      let isBBQ = false;
+      let bbqTables = 0;
+      let isWestern = /西/.test(groupNameRaw) || /西/.test(strVal);
+      let isVegTag = /素/.test(groupNameRaw) || /素/.test(strVal);
+
+      // BBQ Regex Checks
+      const bbqMatch = strVal.match(/BBQ\s*([\d\.]+)\s*(?:枱|份)?/i);
+      const headcountBbqMatch = strVal.match(/(\d+)\s*人\s*BBQ/i);
+      const bbqNumOnly = strVal.match(/BBQ\s*(\d+)/i);
+
+      if (bbqMatch) {
+        isBBQ = true;
+        bbqTables = parseFloat(bbqMatch[1]);
+      } else if (headcountBbqMatch) {
+        isBBQ = true;
+        const count = parseInt(headcountBbqMatch[1]);
+        bbqTables = Math.ceil((count / 8) * 2) / 2; // round up to 0.5
+      } else if (bbqNumOnly) {
+        isBBQ = true;
+        const num = parseFloat(bbqNumOnly[1]);
+        bbqTables = num >= 8 ? Math.ceil((num / 8) * 2) / 2 : num;
+      }
+
+      if (isBBQ) {
+        addMealToMap(mergedGroupsMap, groupNameRaw, isWestern, isVegTag, dateStr, 'BBQ', bbqTables, isCancelled);
+        return;
+      }
+
+      // Check explicit Veg vs Regular Split
+      const halfVegMatch = strVal.match(/半枱(?:西)?素/);
+      const numVegMatch = strVal.match(/([\d\.]+)枱(?:西)?素/);
+      if (halfVegMatch) vegTables = 0.5;
+      else if (numVegMatch) vegTables = parseFloat(numVegMatch[1]);
+
+      const regMatch = strVal.match(/([\d\.]+)枱正常/);
+      if (regMatch) {
+        regTables = parseFloat(regMatch[1]);
+      } else {
+        // Find leading numeric table count
+        const leadNum = strVal.match(/^([\d\.]+)/);
+        if (leadNum) {
+          const total = parseFloat(leadNum[1]);
+          regTables = vegTables > 0 ? Math.max(0, total - vegTables) : total;
+        } else if (typeof val === 'number') {
+          regTables = vegTables > 0 ? Math.max(0, val - vegTables) : val;
+        }
+      }
+
+      // If split into both regular and veg entries
+      if (regTables > 0) {
+        addMealToMap(mergedGroupsMap, groupNameRaw, isWestern, false, dateStr, mealType, regTables, isCancelled);
+      }
+      if (vegTables > 0) {
+        const vegGroupName = groupNameRaw.includes('(素)') ? groupNameRaw : `${groupNameRaw} (素)`;
+        addMealToMap(mergedGroupsMap, vegGroupName, isWestern, true, dateStr, mealType, vegTables, isCancelled);
+      }
+    }
+
+    function addMealToMap(map, groupName, isWestern, isVeg, dateStr, mealType, tables, isCancelled) {
+      const key = `${groupName.trim()}_${isVeg ? 'VEG' : 'REG'}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          rawName: groupName.trim(),
+          isWestern,
+          isVeg,
+          isCancelled,
+          mealsRecord: [] // [{ dateStr, mealType, tables }]
+        });
+      }
+
+      const groupObj = map.get(key);
+      groupObj.mealsRecord.push({ dateStr, mealType, tables });
+    }
+
+    /**
+     * FINALIZE GROUP STRUCTURE & SAME-DAY MEAL MERGING
+     */
+    function finalizeGroupsStructure(rawList) {
+      return rawList.map((g, idx) => {
+        // Group meals by date
+        const dateMap = new Map(); // dateStr -> [{ mealType, tables }]
+        g.mealsRecord.forEach(m => {
+          if (!dateMap.has(m.dateStr)) dateMap.set(m.dateStr, []);
+          dateMap.get(m.dateStr).push(m);
+        });
+
+        // Compute max/effective tables for this group
+        let maxTables = 0;
+        const mealsByDate = [];
+
+        dateMap.forEach((meals, dateStr) => {
+          // Merge same-day meals with identical table counts
+          const bbqMeal = meals.find(m => m.mealType === 'BBQ');
+          const stdMeals = meals.filter(m => m.mealType !== 'BBQ');
+
+          const mergedMealsForDate = [];
+
+          if (stdMeals.length > 0) {
+            // Check if all std meals have same table count
+            const firstTables = stdMeals[0].tables;
+            const allSame = stdMeals.every(m => m.tables === firstTables);
+
+            if (allSame) {
+              const types = stdMeals.map(m => m.mealType);
+              let combinedLabel = '餐';
+              if (types.includes('早餐') && types.includes('午餐') && types.includes('晚餐')) {
+                combinedLabel = '早、午、晚餐';
+              } else if (types.includes('早餐') && types.includes('午餐')) {
+                combinedLabel = '早、午餐';
+              } else if (types.includes('早餐') && types.includes('晚餐')) {
+                combinedLabel = '早、晚餐';
+              } else if (types.includes('午餐') && types.includes('晚餐')) {
+                combinedLabel = '午、晚餐';
+              } else {
+                combinedLabel = types.join('、');
+              }
+              mergedMealsForDate.push({ meal: combinedLabel, tables: firstTables });
+              if (firstTables > maxTables) maxTables = firstTables;
+            } else {
+              // Separate lines
+              stdMeals.forEach(m => {
+                mergedMealsForDate.push({ meal: m.mealType, tables: m.tables });
+                if (m.tables > maxTables) maxTables = m.tables;
+              });
+            }
           }
 
-          if (!groupName) continue;
+          if (bbqMeal) {
+            mergedMealsForDate.push({ meal: 'BBQ', tables: bbqMeal.tables });
+            if (bbqMeal.tables > maxTables) maxTables = bbqMeal.tables;
+          }
 
-          // 讀取每日早、午、晚膳食
-          dateCols.forEach(dInfo => {
-            const { colStart, dateStr } = dInfo;
-            // 欄位偏移: 早 (colStart+0), 午 (colStart+2), 晚 (colStart+4)
-            const cellB = String(row[colStart] || '').trim();
-            const cellL = String(row[colStart + 2] || '').trim();
-            const cellD = String(row[colStart + 4] || '').trim();
+          mealsByDate.push({ dateStr, meals: mergedMealsForDate });
+        });
 
-            if (!cellB && !cellL && !cellD) return;
+        // Determine tags
+        let tag = '';
+        if (g.isWestern && g.isVeg) tag = '(西) Vegetables';
+        else if (g.isWestern) tag = '（西）';
+        else if (g.isVeg) tag = 'Vegetables';
 
-            // 提取枱數
-            const parsedB = parseMealCell(cellB);
-            const parsedL = parseMealCell(cellL);
-            const parsedD = parseMealCell(cellD);
+        return {
+          id: `group-${idx}-${Date.now()}`,
+          name: g.rawName,
+          tag,
+          tables: maxTables || 1,
+          checked: !g.isCancelled,
+          isStatusBadge: g.isCancelled,
+          mealsByDate
+        };
+      });
+    }
 
-            if (parsedB.tables > 0 || parsedL.tables > 0 || parsedD.tables > 0 || parsedB.isBBQ || parsedL.isBBQ || parsedD.isBBQ) {
-              
-              if (!rawGroupMap.has(groupName)) {
-                rawGroupMap.set(groupName, {
-                  name: groupName,
-                  mealsByDate: {}
-                });
-              }
+    function excelSerialToDateStr(serial, date1904 = false) {
+      if (typeof serial !== 'number' || isNaN(serial)) return null;
+      const epoch = date1904 ? new Date(Date.UTC(1904, 0, 1)) : new Date(Date.UTC(1899, 11, 30));
+      const millis = Math.round(serial) * 86400000;
+      const d = new Date(epoch.getTime() + millis);
+      if (isNaN(d.getTime())) return null;
+      return `${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
+    }
 
-              const groupObj = rawGroupMap.get(groupName);
-              if (!groupObj.mealsByDate[dateStr]) {
-                groupObj.mealsByDate[dateStr] = [];
-              }
+    /**
+     * RENDER GROUP MANAGEMENT LIST
+     */
+    function renderGroupList() {
+      const container = document.getElementById('groupListContainer');
+      const badge = document.getElementById('groupCountBadge');
+      badge.innerText = `${currentGroups.length} 個團體`;
 
-              if (parsedB.tables > 0) groupObj.mealsByDate[dateStr].push({ type: '早', tables: parsedB.tables, isVeg: parsedB.isVeg, isWestern: parsedB.isWestern, isBBQ: parsedB.isBBQ });
-              if (parsedL.tables > 0) groupObj.mealsByDate[dateStr].push({ type: '午', tables: parsedL.tables, isVeg: parsedL.isVeg, isWestern: parsedL.isWestern, isBBQ: parsedL.isBBQ });
-              if (parsedD.tables > 0) groupObj.mealsByDate[dateStr].push({ type: '晚', tables: parsedD.tables, isVeg: parsedD.isVeg, isWestern: parsedD.isWestern, isBBQ: parsedD.isBBQ });
-            }
+      if (currentGroups.length === 0) {
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">目前沒有團體資料</p>';
+        return;
+      }
+
+      let html = '';
+      currentGroups.forEach((g, idx) => {
+        const isHalf = (g.tables % 1 !== 0);
+        html += `
+          <div class="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-indigo-300 transition">
+            <div class="flex items-center space-x-2.5 overflow-hidden">
+              <input type="checkbox" ${g.checked ? 'checked' : ''} onchange="toggleGroupCheck(${idx})" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+              <div class="truncate">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-bold text-slate-800 text-xs truncate font-kai">${escapeHtml(g.name)}</span>
+                  ${g.isStatusBadge ? '<span class="text-[10px] bg-red-100 text-red-600 border border-red-200 px-1.5 py-0.2 rounded">已取消/HOLD</span>' : ''}
+                  ${isHalf ? '<span class="text-[10px] bg-amber-100 text-amber-700 border border-amber-300 px-1.5 py-0.2 rounded font-semibold">包含半圍</span>' : ''}
+                </div>
+                <div class="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                  <span>${g.tag ? escapeHtml(g.tag) + ' • ' : ''}${g.tables} 枱</span>
+                  <span>(${g.mealsByDate.length} 天菜單)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="openEditGroupModal(${idx})" class="p-1 text-slate-400 hover:text-indigo-600 transition" title="編輯"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button onclick="deleteGroup(${idx})" class="p-1 text-slate-400 hover:text-red-600 transition" title="刪除"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function toggleGroupCheck(idx) {
+      currentGroups[idx].checked = !currentGroups[idx].checked;
+      renderPrintPreview();
+    }
+
+    function selectAllGroups(select) {
+      currentGroups.forEach(g => g.checked = select);
+      renderGroupList();
+      renderPrintPreview();
+    }
+
+    function deleteGroup(idx) {
+      showCustomDialog("確認刪除", `確定要刪除團體「${currentGroups[idx].name}」嗎？`, true, () => {
+        currentGroups.splice(idx, 1);
+        renderGroupList();
+        renderPrintPreview();
+      });
+    }
+
+    /**
+     * RENDER PRINT PREVIEW & PHYSICAL CARD LAYOUT
+     */
+    function renderPrintPreview() {
+      const container = document.getElementById('printPageContainer');
+      const borderStyle = document.getElementById('borderSelect').value;
+      const gridType = document.getElementById('gridSelect').value; // '4', '6', '8'
+      const cardsPerPage = parseInt(gridType);
+
+      // Expand groups into individual table cards (Full cards + Half card if .5)
+      const expandedCards = [];
+
+      currentGroups.filter(g => g.checked).forEach(group => {
+        const fullCardsCount = Math.floor(group.tables);
+        const hasHalfCard = (group.tables % 1 !== 0);
+
+        // Generate full-table cards
+        for (let i = 0; i < fullCardsCount; i++) {
+          expandedCards.push({
+            groupName: group.name,
+            tag: group.tag,
+            isHalf: false,
+            tablesDisplay: fullCardsCount,
+            mealsByDate: group.mealsByDate
+          });
+        }
+
+        // Generate half-table card if applicable
+        if (hasHalfCard) {
+          expandedCards.push({
+            groupName: group.name,
+            tag: group.tag,
+            isHalf: true,
+            tablesDisplay: 0.5,
+            mealsByDate: group.mealsByDate
           });
         }
       });
 
-      // 將 rawGroupMap 轉化為結構化 groupsData
-      const newGroups = [];
-      rawGroupMap.forEach((gData, gName) => {
-        let isCancelled = false;
-        if (optExcludeHold && (gName.includes('取消') || gName.includes('HOLD') || gName.includes('CX'))) {
-          isCancelled = true;
-        }
-
-        // 整理每日膳食文字 (例如同日早午晚 2.5 枱 ➔ 「早、午、晚餐 2.5 枱」)
-        const mealLines = [];
-        let maxTablesAcrossDays = 0;
-        let isWestern = false;
-
-        Object.keys(gData.mealsByDate).forEach(dStr => {
-          const list = gData.mealsByDate[dStr];
-          
-          // 計算正常餐點 (非 BBQ)
-          const normalMeals = list.filter(m => !m.isBBQ);
-          const bbqMeals = list.filter(m => m.isBBQ);
-
-          if (normalMeals.length > 0) {
-            // 檢查是否同枱數可合併
-            const firstT = normalMeals[0].tables;
-            const allSame = normalMeals.every(m => m.tables === firstT);
-            
-            if (normalMeals.some(m => m.isWestern)) isWestern = true;
-
-            if (allSame) {
-              const types = normalMeals.map(m => m.type).join('、');
-              mealLines.push({
-                date: dStr,
-                text: `${types}餐 ${firstT} 枱`
-              });
-              if (firstT > maxTablesAcrossDays) maxTablesAcrossDays = firstT;
-            } else {
-              normalMeals.forEach(m => {
-                mealLines.push({
-                  date: dStr,
-                  text: `${m.type}餐 ${m.tables} 枱`
-                });
-                if (m.tables > maxTablesAcrossDays) maxTablesAcrossDays = m.tables;
-              });
-            }
-          }
-
-          if (bbqMeals.length > 0) {
-            bbqMeals.forEach(m => {
-              mealLines.push({
-                date: dStr,
-                text: `BBQ ${m.tables} 枱`
-              });
-              if (m.tables > maxTablesAcrossDays) maxTablesAcrossDays = m.tables;
-            });
-          }
-        });
-
-        // 計算滿圍與半圍張數
-        const fullCount = Math.floor(maxTablesAcrossDays);
-        const halfCount = (maxTablesAcrossDays % 1 >= 0.4) ? 1 : 0;
-
-        newGroups.push({
-          id: 'grp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
-          name: gName,
-          subtitle: isWestern ? '(西)' : '',
-          enabled: !isCancelled,
-          fullCount: fullCount || 1,
-          halfCount: halfCount,
-          maxFullPeople: 8,
-          maxHalfPeople: 4,
-          isWestern: isWestern,
-          isVeg: false,
-          meals: mealLines
-        });
-      });
-
-      if (newGroups.length === 0) {
-        showToast('未能從選取的工作表中解析出團體膳食數據', 'fa-triangle-exclamation');
-        return;
-      }
-
-      groupsData = newGroups;
-      saveStateToLocal();
-      renderGroupList();
-      renderPages();
-      switchTab('groups');
-      showToast(`成功匯入 ${newGroups.length} 個團體膳食資料！`, 'fa-circle-check');
-    }
-
-    // 智能解析單元格字串 (處理 BBQ / 西餐 / 素食 / 原烹 / SW 等異數)
-    function parseMealCell(str) {
-      if (!str) return { tables: 0, isVeg: false, isWestern: false, isBBQ: false };
-      
-      const s = str.trim().toUpperCase();
-      // 忽略非膳食標註 (如 X, 0, 租飯堂, 自由用餐)
-      if (s === 'X' || s === '0' || s.includes('原烹') || s.includes('租飯堂') || s.includes('三文治')) {
-        return { tables: 0, isVeg: false, isWestern: false, isBBQ: false };
-      }
-
-      let isBBQ = s.includes('BBQ');
-      let isWestern = s.includes('西') || s.includes('WESTERN');
-      let isVeg = s.includes('素') || s.includes('VEG');
-
-      let tables = 0;
-
-      // BBQ 規則解析
-      if (isBBQ) {
-        // 例: BBQ2枱 / BBQ 3枱
-        let m1 = s.match(/BBQ\s*(\d+(\.\d+)?)\s*枱/);
-        if (m1) return { tables: parseFloat(m1[1]), isVeg, isWestern, isBBQ: true };
-
-        // 例: 83人BBQ
-        let m2 = s.match(/(\d+)\s*人\s*BBQ/);
-        if (m2) {
-          let p = parseInt(m2[1], 10);
-          return { tables: Math.ceil((p / 8) * 2) / 2, isVeg, isWestern, isBBQ: true };
-        }
-
-        // 例: BBQ24, BBQ8, BBQ12 -> 除以 8 人一枱
-        let m3 = s.match(/BBQ\s*(\d+)/);
-        if (m3) {
-          let num = parseInt(m3[1], 10);
-          if (num > 6) tables = num / 8;
-          else tables = num;
-          return { tables, isVeg, isWestern, isBBQ: true };
-        }
-      }
-
-      // 常規數字提取 (例如 "2.5", "4枱", "西 2.5", "9.5\n(半枱西素)")
-      let numMatch = s.match(/(\d+(\.\d+)?)/);
-      if (numMatch) {
-        tables = parseFloat(numMatch[1]);
-      }
-
-      return { tables, isVeg, isWestern, isBBQ };
-    }
-
-    // ==========================================
-    // 團體清單渲染與手動編輯 Modal
-    // ==========================================
-    function renderGroupList() {
-      const container = document.getElementById('groupList');
-      container.innerHTML = '';
-
-      if (groupsData.length === 0) {
+      if (expandedCards.length === 0) {
         container.innerHTML = `
-          <div class="text-center py-8 text-slate-400 text-xs">
-            <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-300"></i>
-            <p>目前沒有團體數據，請匯入 Excel 或點擊「+ 新增團體」</p>
+          <div class="a4-page grid-${gridType} flex items-center justify-center text-slate-400 font-kai">
+            <p>沒有選取的團體列印資料</p>
           </div>
         `;
+        document.getElementById('previewPageInfo').innerText = '共 0 頁';
         return;
       }
 
-      groupsData.forEach((grp, idx) => {
-        const item = document.createElement('div');
-        item.className = `bg-white border ${grp.enabled ? 'border-slate-200' : 'border-slate-100 opacity-60'} rounded-xl p-3 shadow-sm hover:shadow transition flex flex-col gap-2`;
-
-        item.innerHTML = `
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2.5 overflow-hidden">
-              <input type="checkbox" ${grp.enabled ? 'checked' : ''} onchange="toggleGroupEnabled('${grp.id}', this.checked)" class="rounded text-amber-500 focus:ring-amber-400 h-4 w-4">
-              <span class="font-bold text-slate-800 text-sm font-kai truncate">${grp.name}</span>
-              ${grp.subtitle ? `<span class="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded font-mono">${grp.subtitle}</span>` : ''}
-              ${!grp.enabled ? `<span class="bg-slate-200 text-slate-600 text-[10px] px-1.5 py-0.5 rounded">未選用</span>` : ''}
-            </div>
-
-            <div class="flex items-center gap-1">
-              <button onclick="moveGroup('${grp.id}', -1)" ${idx === 0 ? 'disabled' : ''} class="text-slate-400 hover:text-slate-700 disabled:opacity-30 p-1 text-xs">
-                <i class="fa-solid fa-arrow-up"></i>
-              </button>
-              <button onclick="moveGroup('${grp.id}', 1)" ${idx === groupsData.length - 1 ? 'disabled' : ''} class="text-slate-400 hover:text-slate-700 disabled:opacity-30 p-1 text-xs">
-                <i class="fa-solid fa-arrow-down"></i>
-              </button>
-              <button onclick="openEditGroupModal('${grp.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-1.5 rounded text-xs">
-                <i class="fa-solid fa-pen"></i>
-              </button>
-              <button onclick="deleteGroup('${grp.id}')" class="text-red-400 hover:text-red-600 p-1.5 rounded text-xs">
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between text-xs text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg">
-            <div class="flex items-center gap-3">
-              <span>滿圍卡: <strong class="text-slate-800 font-mono">${grp.fullCount}</strong> 張</span>
-              <span>半圍卡: <strong class="text-amber-600 font-mono">${grp.halfCount}</strong> 張</span>
-            </div>
-            <div class="text-[11px] text-slate-400 truncate max-w-[180px]">
-              ${grp.meals.length > 0 ? grp.meals[0].date + ' ' + grp.meals[0].text : '無日程'}
-            </div>
-          </div>
-        `;
-        container.appendChild(item);
-      });
-    }
-
-    function toggleGroupEnabled(id, checked) {
-      const target = groupsData.find(g => g.id === id);
-      if (target) {
-        target.enabled = checked;
-        saveStateToLocal();
-        renderGroupList();
-        renderPages();
+      // Group cards into pages
+      const pages = [];
+      for (let i = 0; i < expandedCards.length; i += cardsPerPage) {
+        pages.push(expandedCards.slice(i, i + cardsPerPage));
       }
+
+      document.getElementById('previewPageInfo').innerText = `共 ${pages.length} 頁 (卡片總數: ${expandedCards.length})`;
+
+      let html = '';
+      pages.forEach((pageCards) => {
+        html += `<div class="a4-page grid-${gridType}">`;
+
+        pageCards.forEach(card => {
+          const isLongTitle = card.groupName.length > 10;
+          
+          html += `
+            <div class="table-card ${borderStyle} font-kai">
+              <!-- Top Header -->
+              <div class="card-header-box">
+                <div class="card-title ${isLongTitle ? 'card-title-long' : ''}">${escapeHtml(card.groupName)}</div>
+                ${card.tag ? `<div class="card-tag">${escapeHtml(card.tag)}</div>` : ''}
+                ${card.isHalf ? `<div class="card-half-badge">（半圍）</div>` : ''}
+              </div>
+
+              <!-- Middle Dates & Meals -->
+              <div class="card-body-dates">
+                ${card.mealsByDate.map(d => `
+                  <div class="card-date-block">
+                    <div class="card-date-title">${escapeHtml(d.dateStr)}</div>
+                    ${d.meals.map(m => `
+                      <div class="card-meal-line">${escapeHtml(m.meal)} ${m.tables} 枱</div>
+                    `).join('')}
+                  </div>
+                `).join('')}
+              </div>
+
+              <!-- Bottom Footer -->
+              <div class="card-footer">
+                ${card.isHalf ? '（限最多 4 人一枱）' : '（限最多 8 人一枱）'}
+              </div>
+            </div>
+          `;
+        });
+
+        // Fill empty grid cells if last page is incomplete
+        const remaining = cardsPerPage - pageCards.length;
+        for (let r = 0; r < remaining; r++) {
+          html += `<div class="table-card ${borderStyle} border-dashed-card opacity-20"></div>`;
+        }
+
+        html += `</div>`;
+      });
+
+      container.innerHTML = html;
     }
 
-    function toggleAllGroups(flag) {
-      groupsData.forEach(g => g.enabled = flag);
-      saveStateToLocal();
-      renderGroupList();
-      renderPages();
+    /**
+     * CONFIG & FONT SCALING
+     */
+    function updatePrintConfig() {
+      renderPrintPreview();
     }
 
-    function moveGroup(id, dir) {
-      const idx = groupsData.findIndex(g => g.id === id);
-      if (idx === -1) return;
-      const newIdx = idx + dir;
-      if (newIdx < 0 || newIdx >= groupsData.length) return;
-
-      const temp = groupsData[idx];
-      groupsData[idx] = groupsData[newIdx];
-      groupsData[newIdx] = temp;
-
-      saveStateToLocal();
-      renderGroupList();
-      renderPages();
+    function updateFontScale(val) {
+      document.getElementById('fontScaleLabel').innerText = `${val}%`;
+      const scaleFactor = val / 100;
+      document.documentElement.style.setProperty('--card-scale', scaleFactor);
     }
 
-    function deleteGroup(id) {
-      groupsData = groupsData.filter(g => g.id !== id);
-      saveStateToLocal();
-      renderGroupList();
-      renderPages();
-    }
-
-    function clearAllGroups() {
-      groupsData = [];
-      saveStateToLocal();
-      renderGroupList();
-      renderPages();
-      showToast('已清空所有團體資料', 'fa-trash-can');
-    }
-
-    function loadDemoData() {
-      groupsData = JSON.parse(JSON.stringify(DEMO_GROUPS));
-      saveStateToLocal();
-      renderGroupList();
-      renderPages();
-      showToast('已重置為官方預設示範數據', 'fa-rotate-left');
-    }
-
-    // Modal 彈窗編輯邏輯
+    /**
+     * ADD / EDIT GROUP MODAL HANDLERS
+     */
     function openAddGroupModal() {
-      currentEditingGroupId = null;
-      document.getElementById('modalTitle').innerText = '新增團體分枱資料';
+      document.getElementById('modalTitle').innerText = '新增團體';
+      document.getElementById('modalGroupIdx').value = '-1';
       document.getElementById('modalGroupName').value = '';
-      document.getElementById('modalGroupSubtitle').value = '';
-      document.getElementById('modalFullCount').value = '1';
-      document.getElementById('modalHalfCount').value = '0';
-      document.getElementById('modalMaxFullPeople').value = '8';
-      document.getElementById('modalMaxHalfPeople').value = '4';
-      
-      const mealList = document.getElementById('modalMealList');
-      mealList.innerHTML = '';
-      addModalMealRow('18/12', '晚餐 4 枱');
+      document.getElementById('modalGroupTag').value = '';
+      document.getElementById('modalGroupTables').value = '4';
+
+      const container = document.getElementById('modalMealRows');
+      container.innerHTML = '';
+      addModalMealRow('24/12', '晚餐', 4);
+      addModalMealRow('25/12', '早、午餐', 4);
 
       document.getElementById('groupModal').classList.remove('hidden');
     }
 
-    function openEditGroupModal(id) {
-      const grp = groupsData.find(g => g.id === id);
-      if (!grp) return;
+    function openEditGroupModal(idx) {
+      const g = currentGroups[idx];
+      document.getElementById('modalTitle').innerText = '編輯團體';
+      document.getElementById('modalGroupIdx').value = idx;
+      document.getElementById('modalGroupName').value = g.name;
+      document.getElementById('modalGroupTag').value = g.tag;
+      document.getElementById('modalGroupTables').value = g.tables;
 
-      currentEditingGroupId = id;
-      document.getElementById('modalTitle').innerText = '編輯團體分枱資料';
-      document.getElementById('modalGroupName').value = grp.name;
-      document.getElementById('modalGroupSubtitle').value = grp.subtitle || '';
-      document.getElementById('modalFullCount').value = grp.fullCount;
-      document.getElementById('modalHalfCount').value = grp.halfCount;
-      document.getElementById('modalMaxFullPeople').value = grp.maxFullPeople || 8;
-      document.getElementById('modalMaxHalfPeople').value = grp.maxHalfPeople || 4;
-
-      const mealList = document.getElementById('modalMealList');
-      mealList.innerHTML = '';
-      grp.meals.forEach(m => addModalMealRow(m.date, m.text));
+      const container = document.getElementById('modalMealRows');
+      container.innerHTML = '';
+      g.mealsByDate.forEach(d => {
+        d.meals.forEach(m => {
+          addModalMealRow(d.dateStr, m.meal, m.tables);
+        });
+      });
 
       document.getElementById('groupModal').classList.remove('hidden');
     }
 
-    function addModalMealRow(date = '', text = '') {
-      const container = document.getElementById('modalMealList');
-      const row = document.createElement('div');
-      row.className = 'flex items-center gap-2 modal-meal-row';
-      row.innerHTML = `
-        <input type="text" placeholder="日期 (例: 18/12)" value="${date}" class="w-28 bg-slate-50 border border-slate-300 rounded px-2 py-1 font-mono text-xs text-center">
-        <input type="text" placeholder="膳食內容 (例: 早、晚餐 2.5 枱)" value="${text}" class="flex-grow bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs">
-        <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 px-1 text-xs">
-          <i class="fa-solid fa-minus-circle"></i>
-        </button>
-      `;
-      container.appendChild(row);
-    }
-
-    function closeModalGroupModal() {
+    function closeGroupModal() {
       document.getElementById('groupModal').classList.add('hidden');
     }
 
-    function saveGroupModal() {
-      const name = document.getElementById('modalGroupName').value.trim();
-      if (!name) {
-        showToast('團體名稱不能為空！', 'fa-triangle-exclamation');
-        return;
-      }
-
-      const subtitle = document.getElementById('modalGroupSubtitle').value.trim();
-      const fullCount = parseInt(document.getElementById('modalFullCount').value, 10) || 0;
-      const halfCount = parseInt(document.getElementById('modalHalfCount').value, 10) || 0;
-      const maxFullPeople = parseInt(document.getElementById('modalMaxFullPeople').value, 10) || 8;
-      const maxHalfPeople = parseInt(document.getElementById('modalMaxHalfPeople').value, 10) || 4;
-
-      const mealRows = document.querySelectorAll('.modal-meal-row');
-      const meals = [];
-      mealRows.forEach(row => {
-        const inputs = row.querySelectorAll('input');
-        const d = inputs[0].value.trim();
-        const t = inputs[1].value.trim();
-        if (d && t) {
-          meals.push({ date: d, text: t });
-        }
-      });
-
-      if (currentEditingGroupId) {
-        const grp = groupsData.find(g => g.id === currentEditingGroupId);
-        if (grp) {
-          grp.name = name;
-          grp.subtitle = subtitle;
-          grp.fullCount = fullCount;
-          grp.halfCount = halfCount;
-          grp.maxFullPeople = maxFullPeople;
-          grp.maxHalfPeople = maxHalfPeople;
-          grp.meals = meals;
-        }
-      } else {
-        groupsData.push({
-          id: 'grp-' + Date.now(),
-          name,
-          subtitle,
-          enabled: true,
-          fullCount,
-          halfCount,
-          maxFullPeople,
-          maxHalfPeople,
-          isWestern: subtitle.includes('西'),
-          isVeg: subtitle.includes('素') || subtitle.includes('Veg'),
-          meals
-        });
-      }
-
-      closeModalGroupModal();
-      saveStateToLocal();
-      renderGroupList();
-      renderPages();
-      showToast('儲存成功！', 'fa-circle-check');
-    }
-
-    // ==========================================
-    // 核心卡片與 A4 頁面渲染引擎 (1:1 相片還原)
-    // ==========================================
-    function renderPages() {
-      const container = document.getElementById('previewViewport');
-      container.innerHTML = '';
-
-      // 1. 整理所有待印製的卡片項目
-      const activeGroups = groupsData.filter(g => g.enabled);
-      let cardList = [];
-
-      if (halfSort === 'group_last') {
-        // 先放所有滿圍卡，最後集中放所有半圍卡
-        activeGroups.forEach(grp => {
-          for (let i = 0; i < grp.fullCount; i++) {
-            cardList.push({ group: grp, isHalf: false });
-          }
-        });
-        activeGroups.forEach(grp => {
-          for (let i = 0; i < grp.halfCount; i++) {
-            cardList.push({ group: grp, isHalf: true });
-          }
-        });
-      } else {
-        // 預設: 跟隨團體置尾
-        activeGroups.forEach(grp => {
-          for (let i = 0; i < grp.fullCount; i++) {
-            cardList.push({ group: grp, isHalf: false });
-          }
-          for (let i = 0; i < grp.halfCount; i++) {
-            cardList.push({ group: grp, isHalf: true });
-          }
-        });
-      }
-
-      // 計算總卡數與總頁數
-      const totalCards = cardList.length;
-      const cardsPerPage = gridMode; // 4, 6, 8
-      const totalPages = Math.ceil(totalCards / cardsPerPage) || 1;
-
-      document.getElementById('counterCardCount').innerText = totalCards;
-      document.getElementById('counterPageCount').innerText = totalPages;
-
-      if (totalCards === 0) {
-        container.innerHTML = `
-          <div class="a4-page flex flex-col items-center justify-center text-slate-300">
-            <i class="fa-solid fa-file-invoice text-6xl mb-4"></i>
-            <p class="font-bold text-lg text-slate-400">尚無可列印的分枱紙卡片</p>
-            <p class="text-sm">請在左側勾選或新增團體</p>
-          </div>
-        `;
-        return;
-      }
-
-      // 2. 分頁生成 A4 頁面
-      for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
-        const pageEl = document.createElement('div');
-        pageEl.className = 'a4-page font-kai';
-
-        // 格局樣式類別
-        const gridClass = `grid-layout-${gridMode}`;
-        const gridEl = document.createElement('div');
-        gridEl.className = `${gridClass} w-full h-full`;
-
-        const startCardIdx = pageIdx * cardsPerPage;
-        const pageCards = cardList.slice(startCardIdx, startCardIdx + cardsPerPage);
-
-        // 填充卡片
-        pageCards.forEach(cardItem => {
-          const cardHtml = generateSingleCardHTML(cardItem.group, cardItem.isHalf);
-          gridEl.appendChild(cardHtml);
-        });
-
-        // 若最後一頁未滿，填充空白虛線格子 (保持版面平衡)
-        const emptySlots = cardsPerPage - pageCards.length;
-        for (let e = 0; e < emptySlots; e++) {
-          const emptyCard = document.createElement('div');
-          emptyCard.className = `table-card ${borderStyle} opacity-20 border-dashed`;
-          gridEl.appendChild(emptyCard);
-        }
-
-        pageEl.appendChild(gridEl);
-        container.appendChild(pageEl);
-      }
-    }
-
-    // 生成單張分枱紙 HTML (嚴格遵循相片排版)
-    function generateSingleCardHTML(grp, isHalf) {
-      const card = document.createElement('div');
-      card.className = `table-card ${borderStyle}`;
-
-      // 1. 標題自動縮放邏輯 (避免長團體名稱如「東華三院大角咀青少年服務中心」溢出)
-      let titleClass = 'card-title';
-      const nameLen = grp.name.length;
-      if (nameLen > 15) titleClass += ' shrink-xxs';
-      else if (nameLen > 12) titleClass += ' shrink-xs';
-      else if (nameLen > 9) titleClass += ' shrink-sm';
-
-      const titleEl = `<div class="${titleClass}">${grp.name}</div>`;
-
-      // 2. 半圍標籤 - 相片對比關鍵：
-      // 相片中: 「中國香港賽艇協會(B)」正下方為「（半圍）」，字號 1.55em，常規體
-      let halfBadgeEl = '';
-      if (isHalf) {
-        let tagText = '（半圍）';
-        if (grp.isWestern && !grp.name.includes('西')) {
-          tagText = '（半圍）（西）';
-        }
-        halfBadgeEl = `<div class="card-half-badge">${tagText}</div>`;
-      } else if (grp.subtitle) {
-        halfBadgeEl = `<div class="card-subtitle">${grp.subtitle}</div>`;
-      }
-
-      // 3. 膳食日程 (Date & Meals)
-      const isTight = grp.meals.length >= 4;
-      let scheduleHtml = `<div class="card-schedule ${isTight ? 'tight-schedule' : ''}">`;
-
-      grp.meals.forEach(m => {
-        scheduleHtml += `
-          <div class="day-block">
-            <div class="day-date">${m.date}</div>
-            <div class="day-meal">${m.text}</div>
-          </div>
-        `;
-      });
-      scheduleHtml += `</div>`;
-
-      // 4. 頁尾限制提示語 (相片顯示：滿圍「（限最多 8 人一枱）」，半圍「（限最多 4 人一枱）」)
-      const maxPeople = isHalf ? (grp.maxHalfPeople || 4) : (grp.maxFullPeople || 8);
-      const footerEl = `<div class="card-footer">（限最多 ${maxPeople} 人一枱）</div>`;
-
-      // 組合 HTML 內容
-      card.innerHTML = `
-        ${titleEl}
-        ${halfBadgeEl}
-        ${scheduleHtml}
-        ${footerEl}
+    function addModalMealRow(dateStr = '', meal = '早、午餐', tables = 4) {
+      const container = document.getElementById('modalMealRows');
+      const div = document.createElement('div');
+      div.className = 'flex items-center gap-2 border-b border-slate-200/60 pb-2';
+      div.innerHTML = `
+        <input type="text" placeholder="日期 (例: 24/12)" value="${escapeHtml(dateStr)}" required class="w-1/3 p-1.5 bg-white border border-slate-300 rounded text-xs">
+        <input type="text" placeholder="餐別 (例: 晚餐)" value="${escapeHtml(meal)}" required class="w-1/3 p-1.5 bg-white border border-slate-300 rounded text-xs">
+        <input type="number" step="0.5" placeholder="枱數" value="${tables}" required class="w-1/4 p-1.5 bg-white border border-slate-300 rounded text-xs">
+        <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-circle-minus"></i></button>
       `;
+      container.appendChild(div);
+    }
 
-      return card;
+    function saveGroupModal(e) {
+      e.preventDefault();
+      const idx = parseInt(document.getElementById('modalGroupIdx').value);
+      const name = document.getElementById('modalGroupName').value.trim();
+      const tag = document.getElementById('modalGroupTag').value.trim();
+      const tables = parseFloat(document.getElementById('modalGroupTables').value);
+
+      const rows = document.querySelectorAll('#modalMealRows > div');
+      const dateMap = new Map();
+
+      rows.forEach(r => {
+        const inputs = r.querySelectorAll('input');
+        const dStr = inputs[0].value.trim();
+        const mStr = inputs[1].value.trim();
+        const tNum = parseFloat(inputs[2].value);
+
+        if (dStr && mStr) {
+          if (!dateMap.has(dStr)) dateMap.set(dStr, []);
+          dateMap.get(dStr).push({ meal: mStr, tables: tNum });
+        }
+      });
+
+      const mealsByDate = [];
+      dateMap.forEach((meals, dateStr) => {
+        mealsByDate.push({ dateStr, meals });
+      });
+
+      const groupData = {
+        id: idx >= 0 ? currentGroups[idx].id : `group-custom-${Date.now()}`,
+        name,
+        tag,
+        tables,
+        checked: true,
+        isStatusBadge: false,
+        mealsByDate
+      };
+
+      if (idx >= 0) {
+        currentGroups[idx] = groupData;
+      } else {
+        currentGroups.push(groupData);
+      }
+
+      closeGroupModal();
+      renderGroupList();
+      renderPrintPreview();
+    }
+
+    /**
+     * CUSTOM DIALOG MODAL (NO ALERT/CONFIRM)
+     */
+    let dialogCallback = null;
+
+    function showCustomDialog(title, message, isConfirm = false, onConfirm = null) {
+      document.getElementById('dialogTitle').innerText = title;
+      document.getElementById('dialogMessage').innerText = message;
+      dialogCallback = onConfirm;
+
+      const btnContainer = document.getElementById('dialogButtons');
+      if (isConfirm) {
+        btnContainer.innerHTML = `
+          <button onclick="closeCustomDialog()" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg">取消</button>
+          <button onclick="confirmCustomDialog()" class="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-sm">確定刪除</button>
+        `;
+      } else {
+        btnContainer.innerHTML = `
+          <button onclick="closeCustomDialog()" class="px-5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-sm">確定</button>
+        `;
+      }
+
+      document.getElementById('customDialogModal').classList.remove('hidden');
+    }
+
+    function closeCustomDialog() {
+      document.getElementById('customDialogModal').classList.add('hidden');
+      dialogCallback = null;
+    }
+
+    function confirmCustomDialog() {
+      if (dialogCallback) dialogCallback();
+      closeCustomDialog();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&rawgt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
   </script>
 </body>
